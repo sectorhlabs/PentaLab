@@ -12,7 +12,7 @@ export interface ChordAnalysis {
   key: string | null
 }
 
-const BACKEND_URL_KEY = 'mymusic-backend-url'
+const BACKEND_URL_KEY = 'pentalab-backend-url'
 
 /** URL base del backend. Vacío → rutas relativas (proxy de Vite en dev). */
 export function getBackendUrl(): string {

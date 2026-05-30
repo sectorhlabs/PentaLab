@@ -9,7 +9,7 @@ BASE_DIR = Path(__file__).resolve().parents[2]
 
 
 class Settings(BaseSettings):
-    app_name: str = "MyMusic API"
+    app_name: str = "PentaLab API"
     debug: bool = True
 
     # Orígenes permitidos por CORS. Con allow_credentials=True no se puede usar "*".
@@ -17,7 +17,7 @@ class Settings(BaseSettings):
     cors_origins: list[str] = ["*"]
 
     # SQLite local por defecto: cero infraestructura.
-    database_url: str = f"sqlite+aiosqlite:///{BASE_DIR / 'mymusic.db'}"
+    database_url: str = f"sqlite+aiosqlite:///{BASE_DIR / 'pentalab.db'}"
 
     # Carpeta donde se guardan los audios subidos.
     data_dir: Path = BASE_DIR / "data" / "recordings"

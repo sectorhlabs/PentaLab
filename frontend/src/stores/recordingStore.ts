@@ -76,7 +76,7 @@ export const useRecordingStore = create<RecordingStore>()(
       }
     }),
     {
-      name: 'mymusic-recordings',
+      name: 'pentalab-recordings',
       storage: createJSONStorage(() => indexedDBStorage),
       // Solo persistimos la lista de grabaciones; currentRecording es efímero.
       partialize: (state) => ({ recordings: state.recordings })

@@ -1,9 +1,7 @@
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, UploadFile, File, HTTPException
-from fastapi.responses import FileResponse
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
 
 from ...core.deps import get_db
 from ...core.config import get_settings
@@ -50,51 +48,3 @@ async def create_recording(
         "filename": file.filename,
         "created_at": recording.created_at.isoformat(),
     }
-
-
-@router.get("/")
-async def list_recordings(db: AsyncSession = Depends(get_db)):
-    result = await db.execute(select(Recording).order_by(Recording.created_at.desc()))
-    return [
-        {
-            "id": r.id,
-            "title": r.title,
-            "duration": r.duration,
-            "created_at": r.created_at.isoformat(),
-        }
-        for r in result.scalars().all()
-    ]
-
-
-@router.get("/{recording_id}")
-async def get_recording(recording_id: str, db: AsyncSession = Depends(get_db)):
-    recording = await db.get(Recording, recording_id)
-    if not recording:
-        raise HTTPException(status_code=404, detail="Recording not found")
-    return {
-        "id": recording.id,
-        "title": recording.title,
-        "duration": recording.duration,
-        "created_at": recording.created_at.isoformat(),
-    }
-
-
-@router.get("/{recording_id}/stream")
-async def stream_recording(recording_id: str, db: AsyncSession = Depends(get_db)):
-    recording = await db.get(Recording, recording_id)
-    if not recording or not recording.file_path or not Path(recording.file_path).exists():
-        raise HTTPException(status_code=404, detail="Audio not found")
-    return FileResponse(recording.file_path)
-
-
-@router.delete("/{recording_id}", status_code=204)
-async def delete_recording(recording_id: str, db: AsyncSession = Depends(get_db)):
-    recording = await db.get(Recording, recording_id)
-    if not recording:
-        raise HTTPException(status_code=404, detail="Recording not found")
-
-    if recording.file_path:
-        Path(recording.file_path).unlink(missing_ok=True)
-
-    await db.delete(recording)
-    await db.commit()

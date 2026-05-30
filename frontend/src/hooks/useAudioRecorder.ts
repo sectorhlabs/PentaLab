@@ -14,7 +14,7 @@ const MIME_CANDIDATES = [
   'audio/aac',
 ]
 
-const MIC_PREF_KEY = 'mymusic-mic-id'
+const MIC_PREF_KEY = 'pentalab-mic-id'
 
 function pickSupportedMimeType(): string | undefined {
   if (typeof MediaRecorder === 'undefined' || !MediaRecorder.isTypeSupported) {

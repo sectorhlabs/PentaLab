@@ -1,4 +1,4 @@
-const DB_NAME = 'mymusic-db'
+const DB_NAME = 'pentalab-db'
 const STORE_NAME = 'recordings'
 const KV_STORE = 'kv'
 const DB_VERSION = 2

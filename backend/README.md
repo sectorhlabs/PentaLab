@@ -26,7 +26,7 @@ pip install -r requirements.txt
 uvicorn app.main:app --host 0.0.0.0 --port 8000
 ```
 
-- Crea automáticamente la base de datos `mymusic.db` y la carpeta `data/recordings/`.
+- Crea automáticamente la base de datos `pentalab.db` y la carpeta `data/recordings/`.
 - Health check: http://localhost:8000/health
 - Los audios subidos se guardan en `backend/data/recordings/`.
 
