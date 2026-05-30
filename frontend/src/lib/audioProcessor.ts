@@ -28,6 +28,10 @@ const MAX_FREQ = 2000
 // dominantes y separa las notas del acorde del leakage espectral.
 const CHROMA_SHARPEN = 2
 
+// Radio (en frames) del filtro mediana temporal del chroma. Con hop ~0.186 s,
+// radio 3 ≈ ventana de ~1.3 s: aplana transitorios sin tragarse cambios reales.
+const CHROMA_MEDIAN_RADIUS = 3
+
 // Estados del modelo: 12 mayores + 12 menores + "sin acorde".
 const MAJOR_INTERVALS = [0, 4, 7]
 const MINOR_INTERVALS = [0, 3, 7]
@@ -183,6 +187,32 @@ function chromaFromMag(mag: Float32Array, rate: number, tuning: number): number[
   return chroma
 }
 
+/** Mediana temporal por clase de pitch sobre una ventana ±radius, renormalizada
+ *  por suma. Robusta a frames atípicos (ataques, notas de paso). */
+function medianFilterChroma(chromas: number[][], radius: number): number[][] {
+  const n = chromas.length
+  if (radius < 1 || n === 0) return chromas
+  const out: number[][] = new Array(n)
+  const window: number[] = []
+  for (let t = 0; t < n; t++) {
+    const v = new Array(12)
+    let sum = 0
+    for (let pc = 0; pc < 12; pc++) {
+      window.length = 0
+      const lo = Math.max(0, t - radius)
+      const hi = Math.min(n - 1, t + radius)
+      for (let k = lo; k <= hi; k++) window.push(chromas[k][pc])
+      window.sort((a, b) => a - b)
+      const m = window[window.length >> 1]
+      v[pc] = m
+      sum += m
+    }
+    if (sum > 1e-12) for (let pc = 0; pc < 12; pc++) v[pc] /= sum
+    out[t] = v
+  }
+  return out
+}
+
 // ---------------------------------------------------------------------------
 // Emisión y Viterbi
 // ---------------------------------------------------------------------------
@@ -219,12 +249,13 @@ function viterbiDecode(emissions: Float32Array[]): number[] {
   const T = emissions.length
   if (T === 0) return []
 
-  const logSelf = Math.log(0.9)
-  const logSwitch = Math.log(0.1 / (N_STATES - 1))
+  const logSelf = Math.log(0.94)
+  const logSwitch = Math.log(0.06 / (N_STATES - 1))
   const eps = 1e-9
   // Ganancia que amplifica el contraste de emisión entre acordes, para que
-  // segmentos cortos puedan superar la rigidez de las transiciones.
-  const EMISSION_GAIN = 6
+  // segmentos cortos puedan superar la rigidez de las transiciones. Más baja =
+  // más inercia = menos parpadeo entre acordes vecinos.
+  const EMISSION_GAIN = 4
 
   const logE = (t: number, s: number) => EMISSION_GAIN * Math.log(emissions[t][s] + eps)
 
@@ -386,6 +417,55 @@ function buildChords(
   return chords
 }
 
+// Consolidación de la salida.
+const MERGE_GAP = 4.0 // s: huecos de "sin acorde" más cortos se rellenan uniendo iguales
+const MIN_CHORD_DUR = 0.6 // s: segmentos más cortos se absorben en el vecino
+
+/** Une acordes iguales separados por huecos cortos y absorbe micro-segmentos,
+ *  para no mostrar un tramo sostenido troceado ni parpadeos de un frame. */
+function coalesceChords(chords: Chord[]): Chord[] {
+  if (chords.length === 0) return chords
+
+  const sameMerge = (list: Chord[]): Chord[] => {
+    const out: Chord[] = []
+    for (const c of list) {
+      const last = out[out.length - 1]
+      if (last && last.root === c.root && last.quality === c.quality && c.start - last.end <= MERGE_GAP) {
+        last.end = c.end
+        last.confidence = Math.max(last.confidence, c.confidence)
+      } else {
+        out.push({ ...c })
+      }
+    }
+    return out
+  }
+
+  let list = sameMerge(chords)
+
+  let changed = true
+  while (changed) {
+    changed = false
+    const out: Chord[] = []
+    for (let i = 0; i < list.length; i++) {
+      const c = list[i]
+      if (c.end - c.start < MIN_CHORD_DUR) {
+        if (out.length) {
+          out[out.length - 1].end = c.end // el acorde anterior absorbe el corto
+          changed = true
+          continue
+        } else if (i + 1 < list.length) {
+          list[i + 1].start = c.start // el primero, lo absorbe el siguiente
+          changed = true
+          continue
+        }
+      }
+      out.push(c)
+    }
+    list = sameMerge(out)
+  }
+  return list
+}
+
 /**
  * Pipeline completo y puro (sin AudioBuffer): mono samples → decimación →
  * espectro → chroma → Viterbi → acordes, tonalidad y tempo. Pensado para
@@ -404,7 +484,9 @@ export function analyzeAudio(
   const medianEnergy = sortedEnergies[sortedEnergies.length >> 1] ?? 0
   const silenceThreshold = medianEnergy * 0.05
 
-  const emissions: Float32Array[] = []
+  // 1) Chroma por frame + marca de silencio.
+  const rawChromas: number[][] = []
+  const silentFlags: boolean[] = []
   const globalChroma = new Array(12).fill(0)
   for (let t = 0; t < spectra.mags.length; t++) {
     const silent = spectra.energies[t] < silenceThreshold
@@ -412,15 +494,26 @@ export function analyzeAudio(
     if (!silent) {
       for (let i = 0; i < 12; i++) globalChroma[i] += chroma[i]
     }
-    emissions.push(emissionScores(chroma, silent))
+    rawChromas.push(chroma)
+    silentFlags.push(silent)
+  }
+
+  // 2) Filtro mediana temporal del chroma: aplana transitorios (ataques de
+  //    rasgueo, notas de paso) que hacían parpadear el acorde frame a frame.
+  const smooth = medianFilterChroma(rawChromas, CHROMA_MEDIAN_RADIUS)
+
+  // 3) Emisiones.
+  const emissions: Float32Array[] = []
+  for (let t = 0; t < smooth.length; t++) {
+    emissions.push(emissionScores(smooth[t], silentFlags[t]))
     if (onProgress && (t & 31) === 0) {
-      onProgress(0.7 + (t / spectra.mags.length) * 0.25)
+      onProgress(0.7 + (t / smooth.length) * 0.25)
     }
   }
 
   const path = viterbiDecode(emissions)
   const hopTime = HOP_SIZE / spectra.rate
-  const chords = buildChords(path, emissions, spectra.times, hopTime)
+  const chords = coalesceChords(buildChords(path, emissions, spectra.times, hopTime))
 
   const key = estimateKey(globalChroma)
   const tempo = estimateTempo(spectra.mags, spectra.rate)
