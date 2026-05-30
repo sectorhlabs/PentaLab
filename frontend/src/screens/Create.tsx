@@ -1,0 +1,200 @@
+import { useEffect, useRef } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { Mic, Square, Check } from 'lucide-react'
+import { useAudioRecorder } from '../hooks/useAudioRecorder'
+import { useRecordingStore } from '../stores/recordingStore'
+import { saveAudioBlob } from '../services/storage'
+import { PaintBlob } from '../components/decor'
+
+export default function Create() {
+  const navigate = useNavigate()
+  const hasProcessedRef = useRef(false)
+  const savedRef = useRef(false)
+
+  const addRecording = useRecordingStore((s) => s.addRecording)
+  const setCurrentRecording = useRecordingStore((s) => s.setCurrentRecording)
+
+  const {
+    status, duration, progress, chords, musicKey, tempo, error,
+    devices, selectedDeviceId, setSelectedDeviceId, audioBlob,
+    startRecording, stopRecording, processRecording, reset,
+  } = useAudioRecorder()
+
+  useEffect(() => {
+    if (status === 'processing' && audioBlob && !hasProcessedRef.current) {
+      hasProcessedRef.current = true
+      processRecording()
+    }
+    if (status === 'idle') {
+      hasProcessedRef.current = false
+      savedRef.current = false
+    }
+    if (status === 'complete') hasProcessedRef.current = false
+  }, [status, audioBlob, processRecording])
+
+  useEffect(() => {
+    if (status !== 'complete' || !audioBlob || savedRef.current) return
+    savedRef.current = true
+
+    const id = crypto.randomUUID()
+    const createdAt = new Date().toISOString()
+    const title = `Lámina ${new Date().toLocaleString('es-ES', {
+      day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit',
+    })}`
+    const recording = { id, title, duration, chords, key: musicKey ?? undefined, tempo: tempo ?? undefined, createdAt }
+
+    saveAudioBlob(id, audioBlob)
+      .then(() => {
+        addRecording(recording)
+        setCurrentRecording(recording)
+      })
+      .catch((err) => console.error('No se pudo guardar la grabación:', err))
+  }, [status, audioBlob, duration, chords, musicKey, tempo, addRecording, setCurrentRecording])
+
+  const handleRecordClick = () => {
+    if (status === 'idle') startRecording()
+    else if (status === 'recording') stopRecording()
+  }
+
+  const fmt = (s: number) => `${Math.floor(s / 60)}:${(s % 60).toString().padStart(2, '0')}`
+  const circ = 2 * Math.PI * 45
+
+  const content = () => {
+    switch (status) {
+      case 'idle':
+        return (
+          <div className="flex flex-col items-center">
+            <button onClick={handleRecordClick} className="relative grid place-items-center w-44 h-44" aria-label="Grabar">
+              <span className="absolute inset-3 rounded-full bg-terracota/40 animate-ink-pulse" />
+              <span className="relative grid place-items-center w-32 h-32 rounded-full bg-terracota text-paper shadow-[0_8px_30px_oklch(0.62_0.15_45_/_0.4)] active:scale-95 transition-transform">
+                <Mic className="w-12 h-12" strokeWidth={1.6} />
+              </span>
+            </button>
+            <p className="text-ink-soft mt-7">Toca para empezar a pintar sonido</p>
+
+            {devices.length > 1 && (
+              <select
+                value={selectedDeviceId ?? ''}
+                onChange={(e) => setSelectedDeviceId(e.target.value || null)}
+                aria-label="Seleccionar micrófono"
+                className="mt-6 w-full max-w-[280px] bg-paper-deep border border-paper-line edge-painted-sm px-3 py-2.5 text-sm text-ink focus:outline-none focus:border-terracota/50"
+              >
+                <option value="">Micrófono predeterminado</option>
+                {devices.map((d, i) => (
+                  <option key={d.deviceId} value={d.deviceId}>{d.label || `Micrófono ${i + 1}`}</option>
+                ))}
+              </select>
+            )}
+            {error && <p className="text-magenta text-sm text-center max-w-[280px] mt-4">{error}</p>}
+          </div>
+        )
+
+      case 'recording':
+        return (
+          <div className="flex flex-col items-center w-full">
+            <div className="flex items-end justify-center gap-[3px] h-24 w-full max-w-[300px] mb-8">
+              {Array.from({ length: 44 }).map((_, i) => (
+                <span
+                  key={i}
+                  className="flex-1 bg-terracota rounded-full"
+                  style={{ height: `${Math.random() * 70 + 14}%`, opacity: 0.75 }}
+                />
+              ))}
+            </div>
+            <div className="flex items-center gap-2.5 mb-9">
+              <span className="w-3 h-3 rounded-full bg-magenta animate-ink-pulse" />
+              <span className="font-mono text-3xl text-ink tabular-nums">{fmt(duration)}</span>
+            </div>
+            <button
+              onClick={handleRecordClick}
+              className="grid place-items-center w-20 h-20 rounded-full bg-magenta text-paper shadow-[0_6px_22px_oklch(0.58_0.18_5_/_0.4)] active:scale-95 transition-transform"
+              aria-label="Detener"
+            >
+              <Square className="w-8 h-8" fill="currentColor" />
+            </button>
+          </div>
+        )
+
+      case 'processing':
+        return (
+          <div className="flex flex-col items-center">
+            <PaintBlob variant={0} className="w-24 h-24 text-mostaza/40 animate-pulse" />
+            <p className="font-display text-xl text-ink mt-5">Mezclando la paleta…</p>
+            <p className="text-sm text-ink-faint mt-1">Preparando el audio</p>
+          </div>
+        )
+
+      case 'analyzing':
+        return (
+          <div className="flex flex-col items-center">
+            <div className="relative w-40 h-40 grid place-items-center">
+              <svg viewBox="0 0 100 100" className="absolute inset-0 -rotate-90">
+                <circle cx="50" cy="50" r="45" fill="none" stroke="oklch(0.86 0.022 74)" strokeWidth="6" />
+                <circle
+                  cx="50" cy="50" r="45" fill="none" stroke="oklch(0.62 0.15 45)" strokeWidth="6"
+                  strokeLinecap="round" strokeDasharray={`${(progress * circ).toFixed(1)} ${circ.toFixed(1)}`}
+                  style={{ transition: 'stroke-dasharray 0.3s ease-out' }}
+                />
+              </svg>
+              <span className="font-mono text-2xl text-ink tabular-nums">{Math.round(progress * 100)}%</span>
+            </div>
+            <p className="font-display text-xl text-ink mt-6">Buscando los acordes…</p>
+            <p className="text-sm text-ink-faint mt-1">Cada nota a su sitio</p>
+          </div>
+        )
+
+      case 'complete':
+        return (
+          <div className="flex flex-col items-center w-full animate-bloom">
+            <span className="grid place-items-center w-20 h-20 rounded-full bg-oliva/15 text-oliva mb-5">
+              <Check className="w-10 h-10" strokeWidth={2.4} />
+            </span>
+            <h2 className="font-display text-2xl font-semibold text-ink">¡Lámina lista!</h2>
+            <p className="text-ink-soft mt-1 mb-1">
+              {chords.length} {chords.length === 1 ? 'acorde' : 'acordes'}
+              {musicKey ? ` · ${musicKey}` : ''}{tempo ? ` · ${tempo} BPM` : ''}
+            </p>
+
+            <div className="flex flex-wrap justify-center gap-2 my-5 max-w-[300px]">
+              {chords.slice(0, 6).map((c, i) => (
+                <span key={i} className="pigment px-3 py-1.5 text-sm bg-magenta/12 text-magenta">
+                  {c.root}{c.quality === 'minor' ? 'm' : ''}
+                </span>
+              ))}
+              {chords.length > 6 && (
+                <span className="pigment px-3 py-1.5 text-sm bg-ink/8 text-ink-soft">+{chords.length - 6}</span>
+              )}
+            </div>
+
+            <div className="flex gap-3 w-full max-w-[300px]">
+              <button className="btn btn-secondary flex-1" onClick={() => { reset(); navigate('/library') }}>
+                Al cuaderno
+              </button>
+              <button className="btn btn-primary flex-1" onClick={() => navigate('/practice')}>
+                Tocar ahora
+              </button>
+            </div>
+          </div>
+        )
+    }
+  }
+
+  return (
+    <div className="relative flex flex-col min-h-[calc(100dvh-160px)]">
+      <PaintBlob variant={2} className="absolute -top-6 -left-20 w-52 h-52 text-cobalto/12 pointer-events-none -z-10" />
+      <header className="mb-2">
+        <h1 className="font-display text-[2rem] leading-none font-semibold text-ink">Crear</h1>
+        <p className="text-ink-soft mt-2 text-sm">Una canción nueva para tu cuaderno</p>
+      </header>
+
+      <div className="flex-1 grid place-items-center py-6">{content()}</div>
+
+      {(status === 'processing' || status === 'analyzing') && (
+        <button className="btn btn-ghost self-center" onClick={reset}>Cancelar</button>
+      )}
+      {status === 'complete' && (
+        <button className="btn btn-ghost self-center" onClick={reset}>Grabar otra</button>
+      )}
+    </div>
+  )
+}

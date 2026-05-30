@@ -1,0 +1,110 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  html {
+    font-family: '"Hanken Grotesk"', -apple-system, BlinkMacSystemFont, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    @apply bg-paper text-ink;
+    overscroll-behavior: none;
+    touch-action: manipulation;
+    /* Grano de papel: ruido SVG sutil sobre el lienzo cálido. */
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.05'/%3E%3C/svg%3E");
+  }
+
+  button {
+    -webkit-user-select: none;
+    user-select: none;
+  }
+
+  ::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    @apply bg-ink-faint/40 rounded-full;
+  }
+
+  ::selection {
+    @apply bg-terracota/25;
+  }
+
+  :focus-visible {
+    outline: 2px solid theme('colors.terracota');
+    outline-offset: 2px;
+  }
+}
+
+@layer components {
+  /* Botones: una sola gramática en toda la app. */
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 font-medium transition-all duration-200;
+    @apply active:scale-[0.97] disabled:opacity-45 disabled:pointer-events-none;
+    min-height: 44px;
+    border-radius: 14px 13px 15px 12px;
+  }
+  .btn-primary {
+    @apply bg-terracota text-paper px-6 py-3;
+    box-shadow: 0 2px 10px oklch(0.62 0.15 45 / 0.30);
+  }
+  .btn-primary:hover {
+    filter: brightness(1.05);
+  }
+  .btn-secondary {
+    @apply bg-transparent text-ink px-6 py-3;
+    border: 1.5px solid theme('colors.ink / 25%');
+  }
+  .btn-secondary:hover {
+    @apply bg-ink/5;
+  }
+  .btn-ghost {
+    @apply bg-transparent text-ink-soft px-4 py-2;
+  }
+
+  /* Tarjeta-lámina: papel elevado con borde irregular pintado. */
+  .sheet {
+    @apply bg-paper-deep p-4;
+    border-radius: 18px 16px 20px 15px;
+    box-shadow: theme('boxShadow.paper');
+    border: 1px solid theme('colors.paper-line / 60%');
+  }
+
+  /* Pastilla de pigmento (acordes, etiquetas). */
+  .pigment {
+    @apply inline-flex items-center justify-center font-mono;
+    border-radius: 11px 9px 12px 10px;
+  }
+
+  .touch-target {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}
+
+@layer utilities {
+  .safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  .font-display {
+    font-family: 'Fraunces', Georgia, serif;
+  }
+  /* Borde irregular reutilizable, como un recorte pintado a mano. */
+  .edge-painted {
+    border-radius: 18px 16px 20px 15px;
+  }
+  .edge-painted-sm {
+    border-radius: 12px 10px 13px 11px;
+  }
+}
