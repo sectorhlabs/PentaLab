@@ -161,10 +161,7 @@ export default function SettingsPage() {
             <p>Funciona sin conexión. Todo se queda en tu dispositivo.</p>
           </div>
 
-          <Signature name={displayName} className="mt-6" />
-          <p className="text-xs text-ink-faint mt-3">Hecho con ♥ · v1.0</p>
-
-          <button onClick={() => setShowAbout(false)} className="btn btn-secondary w-full mt-6">
+          <button onClick={() => setShowAbout(false)} className="btn btn-secondary w-full mt-8">
             Cerrar
           </button>
         </div>
