@@ -19,7 +19,9 @@ export default function SettingsPage() {
   const [showInstall, setShowInstall] = useState(false)
 
   const { installed, canInstall, isIOS, promptInstall } = usePwaInstall()
-  const showInstallSection = !installed && (canInstall || isIOS)
+  // Mostramos la opción siempre que no esté ya instalada. Si el navegador no
+  // ofrece el prompt nativo, abrimos instrucciones según la plataforma.
+  const showInstallSection = !installed
 
   const logout = async () => {
     try { await fetch('/api/logout', { method: 'POST' }) } finally { location.reload() }
@@ -116,7 +118,7 @@ export default function SettingsPage() {
               <span className="flex-1">
                 <span className="block text-ink">Instalar PentaLab</span>
                 <span className="block text-xs text-ink-faint mt-0.5">
-                  {canInstall ? 'Añádela como app a tu pantalla de inicio' : 'Cómo añadirla en iPhone/iPad'}
+                  {canInstall ? 'Añádela como app a tu pantalla de inicio' : 'Cómo añadirla a tu pantalla de inicio'}
                 </span>
               </span>
             </button>
@@ -212,23 +214,49 @@ export default function SettingsPage() {
 
       <BottomSheet open={showInstall} onClose={() => setShowInstall(false)} title="Añadir a la pantalla de inicio">
         <div className="space-y-4 text-sm text-ink-soft leading-relaxed">
-          <p>En iPhone/iPad la instalación se hace desde Safari en tres pasos:</p>
-          <ol className="space-y-3">
-            <li className="flex items-center gap-3">
-              <span className="grid place-items-center w-7 h-7 rounded-full bg-terracota/[0.12] text-terracota font-mono text-xs shrink-0">1</span>
-              <span className="flex-1">Pulsa el botón <strong className="text-ink font-semibold">Compartir</strong>.</span>
-              <Share className="w-5 h-5 text-cobalto shrink-0" />
-            </li>
-            <li className="flex items-center gap-3">
-              <span className="grid place-items-center w-7 h-7 rounded-full bg-terracota/[0.12] text-terracota font-mono text-xs shrink-0">2</span>
-              <span className="flex-1">Elige <strong className="text-ink font-semibold">«Añadir a pantalla de inicio»</strong>.</span>
-            </li>
-            <li className="flex items-center gap-3">
-              <span className="grid place-items-center w-7 h-7 rounded-full bg-terracota/[0.12] text-terracota font-mono text-xs shrink-0">3</span>
-              <span className="flex-1">Confirma con <strong className="text-ink font-semibold">«Añadir»</strong>.</span>
-              <Check className="w-5 h-5 text-oliva shrink-0" />
-            </li>
-          </ol>
+          {isIOS ? (
+            <>
+              <p>En iPhone/iPad la instalación se hace desde <strong className="text-ink font-semibold">Safari</strong> en tres pasos:</p>
+              <ol className="space-y-3">
+                <li className="flex items-center gap-3">
+                  <span className="grid place-items-center w-7 h-7 rounded-full bg-terracota/[0.12] text-terracota font-mono text-xs shrink-0">1</span>
+                  <span className="flex-1">Pulsa el botón <strong className="text-ink font-semibold">Compartir</strong>.</span>
+                  <Share className="w-5 h-5 text-cobalto shrink-0" />
+                </li>
+                <li className="flex items-center gap-3">
+                  <span className="grid place-items-center w-7 h-7 rounded-full bg-terracota/[0.12] text-terracota font-mono text-xs shrink-0">2</span>
+                  <span className="flex-1">Elige <strong className="text-ink font-semibold">«Añadir a pantalla de inicio»</strong>.</span>
+                </li>
+                <li className="flex items-center gap-3">
+                  <span className="grid place-items-center w-7 h-7 rounded-full bg-terracota/[0.12] text-terracota font-mono text-xs shrink-0">3</span>
+                  <span className="flex-1">Confirma con <strong className="text-ink font-semibold">«Añadir»</strong>.</span>
+                  <Check className="w-5 h-5 text-oliva shrink-0" />
+                </li>
+              </ol>
+            </>
+          ) : (
+            <>
+              <p>Desde <strong className="text-ink font-semibold">Chrome</strong> (Android u ordenador):</p>
+              <ol className="space-y-3">
+                <li className="flex items-center gap-3">
+                  <span className="grid place-items-center w-7 h-7 rounded-full bg-terracota/[0.12] text-terracota font-mono text-xs shrink-0">1</span>
+                  <span className="flex-1">Abre el menú <strong className="text-ink font-semibold">⋮</strong> (o el icono <strong className="text-ink font-semibold">⊕</strong> en la barra de direcciones).</span>
+                </li>
+                <li className="flex items-center gap-3">
+                  <span className="grid place-items-center w-7 h-7 rounded-full bg-terracota/[0.12] text-terracota font-mono text-xs shrink-0">2</span>
+                  <span className="flex-1">Pulsa <strong className="text-ink font-semibold">«Instalar app»</strong> o <strong className="text-ink font-semibold">«Añadir a pantalla de inicio»</strong>.</span>
+                </li>
+                <li className="flex items-center gap-3">
+                  <span className="grid place-items-center w-7 h-7 rounded-full bg-terracota/[0.12] text-terracota font-mono text-xs shrink-0">3</span>
+                  <span className="flex-1">Confirma.</span>
+                  <Check className="w-5 h-5 text-oliva shrink-0" />
+                </li>
+              </ol>
+              <p className="text-xs text-ink-faint">
+                Si no aparece la opción, prueba a usar la app un momento y recargar: el navegador la ofrece tras un poco de uso. En Firefox/Safari de escritorio no hay instalación.
+              </p>
+            </>
+          )}
         </div>
         <button onClick={() => setShowInstall(false)} className="btn btn-primary w-full mt-6">
           Entendido
