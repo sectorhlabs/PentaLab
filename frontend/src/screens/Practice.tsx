@@ -1,9 +1,12 @@
 import { useState, useRef, useEffect, useCallback, memo } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Play, Pause, SkipBack, SkipForward, Volume2, Repeat, Pencil, Check } from 'lucide-react'
+import { Play, Pause, SkipBack, SkipForward, Volume2, Repeat, Pencil, Check, Plus, Timer } from 'lucide-react'
 import { useRecordingStore } from '../stores/recordingStore'
 import { getAudioBlob } from '../services/storage'
 import { PaintBlob } from '../components/decor'
+import { PlayAlong } from '../components/PlayAlong'
+import { LyricsEditor } from '../components/LyricsEditor'
+import { LyricsSync } from '../components/LyricsSync'
 import type { Chord } from '../services/api'
 
 const PLAYBACK_RATES = [1, 0.75, 0.5] as const
@@ -36,9 +39,13 @@ export default function Practice() {
   const navigate = useNavigate()
   const currentRecording = useRecordingStore((s) => s.currentRecording)
   const renameRecording = useRecordingStore((s) => s.renameRecording)
+  const setLyrics = useRecordingStore((s) => s.setLyrics)
 
   const [editingTitle, setEditingTitle] = useState(false)
   const [titleDraft, setTitleDraft] = useState('')
+  const [view, setView] = useState<'chords' | 'lyrics'>('chords')
+  const [showEditor, setShowEditor] = useState(false)
+  const [showSync, setShowSync] = useState(false)
 
   const audioRef = useRef<HTMLAudioElement>(null)
   const progressRef = useRef<HTMLDivElement>(null)
@@ -52,6 +59,8 @@ export default function Practice() {
   const [audioReady, setAudioReady] = useState(false)
 
   const chords = currentRecording?.chords ?? []
+  const lyrics = currentRecording?.lyrics ?? []
+  const lyricsSynced = lyrics.some((l) => l.time != null)
 
   useEffect(() => {
     if (!currentRecording) return
@@ -186,34 +195,85 @@ export default function Practice() {
         )}
       </header>
 
-      {/* Acorde actual: pigmento sobre el lienzo. */}
-      <div className="relative grid place-items-center py-6 mb-4">
-        <PaintBlob
-          variant={0}
-          className={`absolute w-48 h-48 transition-colors duration-300 ${currentChord ? 'text-magenta/20' : 'text-paper-line/60'}`}
-        />
-        <div className="relative text-center">
-          <span className="font-display text-[5rem] leading-none font-semibold text-ink">
-            {currentChord ? chordLabel(currentChord.root, currentChord.quality) : '·'}
-          </span>
-          <span className="block text-sm text-ink-faint mt-1">
-            {currentChord ? currentChord.quality : 'esperando'}
-          </span>
-        </div>
+      {/* Pestañas: acordes sueltos o tocar con letra. */}
+      <div className="flex gap-1 p-1 bg-paper-deep rounded-full mb-4 text-sm border border-paper-line">
+        {(['chords', 'lyrics'] as const).map((t) => (
+          <button
+            key={t}
+            onClick={() => setView(t)}
+            className={`flex-1 py-1.5 rounded-full transition-colors font-medium
+              ${view === t ? 'bg-terracota text-paper' : 'text-ink-soft'}`}
+          >
+            {t === 'chords' ? 'Acordes' : 'Letra'}
+          </button>
+        ))}
       </div>
 
-      {/* Línea de acordes. */}
-      <div className="-mx-1 px-1 mb-4">
-        {chords.length === 0 ? (
-          <p className="text-center text-sm text-ink-faint py-6">Esta lámina no tiene acordes.</p>
-        ) : (
-          <div className="space-y-1">
-            {chords.map((c, i) => (
-              <ChordRow key={i} chord={c} active={i === currentChordIndex} onSeek={seekTo} />
-            ))}
+      {view === 'chords' ? (
+        <>
+          {/* Acorde actual: pigmento sobre el lienzo. */}
+          <div className="relative grid place-items-center py-6 mb-4">
+            <PaintBlob
+              variant={0}
+              className={`absolute w-48 h-48 transition-colors duration-300 ${currentChord ? 'text-magenta/20' : 'text-paper-line/60'}`}
+            />
+            <div className="relative text-center">
+              <span className="font-display text-[5rem] leading-none font-semibold text-ink">
+                {currentChord ? chordLabel(currentChord.root, currentChord.quality) : '·'}
+              </span>
+              <span className="block text-sm text-ink-faint mt-1">
+                {currentChord ? currentChord.quality : 'esperando'}
+              </span>
+            </div>
           </div>
-        )}
-      </div>
+
+          {/* Línea de acordes. */}
+          <div className="-mx-1 px-1 mb-4">
+            {chords.length === 0 ? (
+              <p className="text-center text-sm text-ink-faint py-6">Esta lámina no tiene acordes.</p>
+            ) : (
+              <div className="space-y-1">
+                {chords.map((c, i) => (
+                  <ChordRow key={i} chord={c} active={i === currentChordIndex} onSeek={seekTo} />
+                ))}
+              </div>
+            )}
+          </div>
+        </>
+      ) : (
+        <div className="mb-4">
+          {lyrics.length === 0 ? (
+            <div className="flex flex-col items-center text-center py-10">
+              <p className="text-sm text-ink-soft mb-4 max-w-[260px]">
+                Añade la letra para tocar siguiéndola, con los acordes encima en su sitio.
+              </p>
+              <button onClick={() => setShowEditor(true)} className="btn btn-primary gap-2">
+                <Plus className="w-4 h-4" /> Añadir letra
+              </button>
+            </div>
+          ) : (
+            <>
+              <div className="flex items-center justify-between mb-2 px-1">
+                <span className="text-xs text-ink-faint">{lyricsSynced ? 'Sincronizada' : 'Sin sincronizar'}</span>
+                <div className="flex gap-1">
+                  <button onClick={() => setShowEditor(true)} className="inline-flex items-center gap-1 text-xs text-ink-soft px-2 py-1 rounded-full hover:bg-ink/5">
+                    <Pencil className="w-3.5 h-3.5" /> Editar
+                  </button>
+                  <button onClick={() => { audioRef.current?.pause(); setShowSync(true) }} className="inline-flex items-center gap-1 text-xs text-terracota px-2 py-1 rounded-full hover:bg-terracota/10">
+                    <Timer className="w-3.5 h-3.5" /> Sincronizar
+                  </button>
+                </div>
+              </div>
+              {!lyricsSynced && chords.length > 0 && (
+                <p className="text-xs text-ink-faint bg-mostaza/[0.12] edge-painted-sm px-3 py-2 mb-2">
+                  Sincroniza la letra para que los acordes aparezcan encima en su sitio.
+                </p>
+              )}
+              <PlayAlong lyrics={lyrics} chords={chords} currentTime={currentTime} duration={duration} onSeek={seekTo} />
+            </>
+          )}
+        </div>
+      )}
 
       {/* Barra de progreso. */}
       <div ref={progressRef} onClick={onProgressClick} className="h-2.5 bg-paper-line rounded-full cursor-pointer mb-2 touch-target">
@@ -269,6 +329,20 @@ export default function Practice() {
           className="flex-1 accent-terracota"
         />
       </div>
+
+      <LyricsEditor
+        open={showEditor}
+        onClose={() => setShowEditor(false)}
+        lyrics={lyrics}
+        onSave={(l) => setLyrics(currentRecording.id, l)}
+      />
+      <LyricsSync
+        open={showSync}
+        onClose={() => setShowSync(false)}
+        recordingId={currentRecording.id}
+        lyrics={lyrics}
+        onSave={(l) => setLyrics(currentRecording.id, l)}
+      />
     </div>
   )
 }

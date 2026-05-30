@@ -3,6 +3,12 @@ import { persist, createJSONStorage } from 'zustand/middleware'
 import type { Chord } from '../services/api'
 import { deleteAudioBlob, indexedDBStorage } from '../services/storage'
 
+/** Una línea de letra. `time` en segundos si está sincronizada; null si no. */
+export interface LyricLine {
+  time: number | null
+  text: string
+}
+
 export interface RecordingData {
   id: string
   title: string
@@ -10,6 +16,7 @@ export interface RecordingData {
   chords: Chord[]
   key?: string
   tempo?: number
+  lyrics?: LyricLine[]
   createdAt: string
 }
 
@@ -21,6 +28,7 @@ interface RecordingStore {
   setCurrentRecording: (recording: RecordingData | null) => void
   updateCurrentChords: (chords: Chord[]) => void
   renameRecording: (id: string, title: string) => void
+  setLyrics: (id: string, lyrics: LyricLine[]) => void
   deleteRecording: (id: string) => void
   getRecording: (id: string) => RecordingData | undefined
 }
@@ -58,6 +66,15 @@ export const useRecordingStore = create<RecordingStore>()(
           recordings: state.recordings.map(r => r.id === id ? { ...r, title } : r),
           currentRecording: state.currentRecording?.id === id
             ? { ...state.currentRecording, title }
+            : state.currentRecording
+        }))
+      },
+
+      setLyrics: (id, lyrics) => {
+        set((state) => ({
+          recordings: state.recordings.map(r => r.id === id ? { ...r, lyrics } : r),
+          currentRecording: state.currentRecording?.id === id
+            ? { ...state.currentRecording, lyrics }
             : state.currentRecording
         }))
       },
