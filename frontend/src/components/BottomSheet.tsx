@@ -1,4 +1,4 @@
-import { useRef, useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 
 interface BottomSheetProps {
   open: boolean
@@ -14,6 +14,18 @@ export function BottomSheet({ open, onClose, title, children }: BottomSheetProps
   const startYRef = useRef<number | null>(null)
   const [dragY, setDragY] = useState(0)
   const [dragging, setDragging] = useState(false)
+
+  // Bloquea el scroll del contenido de fondo mientras el panel está abierto,
+  // así el gesto no se "escapa" por detrás.
+  useEffect(() => {
+    if (!open) return
+    const main = document.querySelector('main')
+    const prev = main?.style.overflow
+    if (main) main.style.overflow = 'hidden'
+    return () => {
+      if (main) main.style.overflow = prev ?? ''
+    }
+  }, [open])
 
   if (!open) return null
 
@@ -42,11 +54,13 @@ export function BottomSheet({ open, onClose, title, children }: BottomSheetProps
         onClick={onClose}
       />
       <div
-        className="absolute inset-x-0 bottom-0 bg-paper rounded-t-[26px] shadow-paper-lift max-h-[88vh] overflow-y-auto"
+        className="absolute inset-x-0 bottom-0 bg-paper rounded-t-[26px] shadow-paper-lift max-h-[88dvh] overflow-y-auto"
         style={{
           transform: dragY ? `translateY(${dragY}px)` : undefined,
           transition: dragging ? 'none' : 'transform 0.3s cubic-bezier(0.22, 1, 0.36, 1)',
           animation: dragY ? 'none' : undefined,
+          overscrollBehavior: 'contain',
+          WebkitOverflowScrolling: 'touch',
         }}
       >
         <div className="animate-sheet-up">
