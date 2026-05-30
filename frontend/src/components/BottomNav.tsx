@@ -8,41 +8,40 @@ const navItems = [
   { to: '/settings', icon: Settings, label: 'Ajustes' },
 ]
 
+/**
+ * Barra flotante tipo "paleta apoyada en el lienzo": tarjeta de papel con borde
+ * pintado irregular, despegada de los bordes. La pestaña activa se expande en
+ * una pastilla de pigmento (icono + etiqueta en Fraunces); el resto, solo icono.
+ * "Crear" lleva un tinte terracota permanente para señalar la acción principal.
+ */
 export default function BottomNav() {
   return (
-    <nav
-      className="flex items-stretch justify-around bg-paper-deep border-t border-paper-line
-                 pb-[env(safe-area-inset-bottom)]"
-      style={{ height: 'calc(64px + env(safe-area-inset-bottom))' }}
-    >
-      {navItems.map(({ to, icon: Icon, label, end, accent }) => (
-        <NavLink
-          key={to}
-          to={to}
-          end={end}
-          className={({ isActive }) =>
-            `flex flex-col items-center justify-center gap-1 flex-1 transition-colors duration-200
-             ${isActive ? (accent ? 'text-terracota' : 'text-terracota') : 'text-ink-faint'}`
-          }
-        >
-          {({ isActive }) => (
-            <>
+    <nav className="px-3 pt-1 pb-[calc(10px+env(safe-area-inset-bottom))]">
+      <div className="flex items-center justify-around gap-0.5 bg-paper-deep border border-paper-line shadow-paper-lift edge-painted px-2 py-2">
+        {navItems.map(({ to, icon: Icon, label, end, accent }) => (
+          <NavLink key={to} to={to} end={end} aria-label={label} className="shrink-0">
+            {({ isActive }) => (
               <span
-                className={`grid place-items-center transition-all duration-200
-                  ${accent
-                    ? 'w-10 h-10 rounded-full bg-terracota text-paper shadow-[0_3px_10px_oklch(0.62_0.15_45_/_0.35)]'
-                    : 'w-7 h-7'}`}
+                className={`flex items-center gap-2 min-h-[44px] px-3 transition-[background-color,color] duration-300 ease-out
+                  ${isActive ? 'text-terracota' : accent ? 'text-terracota/70' : 'text-ink-faint'}`}
+                style={{
+                  borderRadius: '16px 13px 15px 14px',
+                  backgroundColor: isActive ? 'oklch(0.62 0.15 45 / 0.14)' : 'transparent',
+                }}
               >
-                <Icon
-                  className={accent ? 'w-5 h-5' : 'w-[22px] h-[22px]'}
-                  strokeWidth={accent ? 2.2 : isActive ? 2.4 : 1.8}
-                />
+                <Icon className="w-[22px] h-[22px] shrink-0" strokeWidth={isActive ? 2.3 : 1.9} />
+                <span
+                  className={`font-display font-semibold text-sm tracking-tight whitespace-nowrap overflow-hidden
+                    transition-all duration-300 ease-out
+                    ${isActive ? 'max-w-[84px] opacity-100' : 'max-w-0 opacity-0'}`}
+                >
+                  {label}
+                </span>
               </span>
-              <span className="text-[10px] font-medium leading-none">{label}</span>
-            </>
-          )}
-        </NavLink>
-      ))}
+            )}
+          </NavLink>
+        ))}
+      </div>
     </nav>
   )
 }
