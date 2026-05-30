@@ -38,6 +38,9 @@ const MINOR_INTERVALS = [0, 3, 7]
 const NO_CHORD = 24
 const N_STATES = 25
 
+// Bonus a los acordes diatónicos del tono estimado (prior de tonalidad).
+const KEY_BIAS = 0.1
+
 // Perfiles de Krumhansl-Schmuckler para estimación de tonalidad.
 const KRUMHANSL_MAJOR = [6.35, 2.23, 3.48, 2.33, 4.38, 4.09, 2.52, 5.19, 2.39, 3.66, 2.29, 2.88]
 const KRUMHANSL_MINOR = [6.33, 2.68, 3.52, 5.38, 2.6, 3.53, 2.54, 4.75, 3.98, 2.69, 3.34, 3.17]
@@ -222,7 +225,7 @@ function medianFilterChroma(chromas: number[][], radius: number): number[][] {
  * suma). El score es la fracción de energía en las notas del acorde. Si el
  * frame es silencio, gana "sin acorde".
  */
-function emissionScores(chroma: number[], isSilent: boolean): Float32Array {
+function emissionScores(chroma: number[], isSilent: boolean, keyBias?: Float32Array | null): Float32Array {
   const scores = new Float32Array(N_STATES)
   if (isSilent) {
     scores[NO_CHORD] = 1
@@ -232,16 +235,40 @@ function emissionScores(chroma: number[], isSilent: boolean): Float32Array {
   for (let root = 0; root < 12; root++) {
     let maj = 0
     for (const iv of MAJOR_INTERVALS) maj += chroma[(root + iv) % 12]
-    scores[root] = maj
-
     let min = 0
     for (const iv of MINOR_INTERVALS) min += chroma[(root + iv) % 12]
-    scores[root + 12] = min
+    // Prior de tonalidad: bonus a los acordes diatónicos del tono estimado.
+    // Resuelve ambigüedades maj/min (p.ej. power chords sin tercera) a favor
+    // de la función que toca en esa tonalidad.
+    scores[root] = maj + (keyBias ? keyBias[root] : 0)
+    scores[root + 12] = min + (keyBias ? keyBias[root + 12] : 0)
   }
 
   // "Sin acorde" gana solo si ninguna tríada concentra suficiente energía.
   scores[NO_CHORD] = 0.4
   return scores
+}
+
+/** Bonus por estado (24) según los acordes diatónicos de la tonalidad. La tónica
+ *  recibe algo más. Devuelve null si no hay tono fiable. */
+function buildKeyBias(key: string): Float32Array | null {
+  const minor = key.endsWith('m')
+  const tonic = NOTE_NAMES.indexOf(minor ? key.slice(0, -1) : key)
+  if (tonic < 0) return null
+  // Grados de la escala mayor relativa y la cualidad de su tríada.
+  const majorRoot = minor ? (tonic + 3) % 12 : tonic
+  // Para Do mayor: C(maj) Dm Em F(maj) G(maj) Am Bdim → estados.
+  const degrees: Array<[number, 'maj' | 'min']> = [
+    [0, 'maj'], [2, 'min'], [4, 'min'], [5, 'maj'], [7, 'maj'], [9, 'min'],
+  ]
+  const bias = new Float32Array(N_STATES)
+  for (const [deg, q] of degrees) {
+    const root = (majorRoot + deg) % 12
+    bias[q === 'maj' ? root : root + 12] = KEY_BIAS
+  }
+  // Refuerza la tónica del modo real (tónica menor en tonos menores).
+  bias[minor ? tonic + 12 : tonic] += KEY_BIAS
+  return bias
 }
 
 /** Decodificación Viterbi sobre los 25 estados con transiciones suaves. */
@@ -502,10 +529,14 @@ export function analyzeAudio(
   //    rasgueo, notas de paso) que hacían parpadear el acorde frame a frame.
   const smooth = medianFilterChroma(rawChromas, CHROMA_MEDIAN_RADIUS)
 
-  // 3) Emisiones.
+  // 3) Tono (de la pasada global) → prior diatónico para las emisiones.
+  const key = estimateKey(globalChroma)
+  const keyBias = buildKeyBias(key)
+
+  // 4) Emisiones.
   const emissions: Float32Array[] = []
   for (let t = 0; t < smooth.length; t++) {
-    emissions.push(emissionScores(smooth[t], silentFlags[t]))
+    emissions.push(emissionScores(smooth[t], silentFlags[t], keyBias))
     if (onProgress && (t & 31) === 0) {
       onProgress(0.7 + (t / smooth.length) * 0.25)
     }
@@ -515,7 +546,6 @@ export function analyzeAudio(
   const hopTime = HOP_SIZE / spectra.rate
   const chords = coalesceChords(buildChords(path, emissions, spectra.times, hopTime))
 
-  const key = estimateKey(globalChroma)
   const tempo = estimateTempo(spectra.mags, spectra.rate)
 
   if (onProgress) onProgress(1)

@@ -119,6 +119,43 @@ function run(name: string, input: { samples: Float32Array; rate: number }) {
   report(name, result, totalDur, Math.round(ms))
 }
 
+const labelOf = (r: string, q: string) => `${r}${q === 'minor' ? 'm' : ''}`
+
+/** Para una canción con vocabulario real conocido: % de tiempo detectado que
+ *  cae dentro del set esperado (proxy de acierto) y desglose de "intrusos". */
+function bench(file: string, name: string, expect: string[] | null) {
+  let dec
+  try {
+    dec = decodeWithFfmpeg(file)
+  } catch {
+    console.log(`  (saltado: no se encontró ${name})`)
+    return
+  }
+  const res = analyzeAudio(dec.samples, dec.rate)
+  const dur = new Map<string, number>()
+  for (const c of res.chords) dur.set(labelOf(c.root, c.quality), (dur.get(labelOf(c.root, c.quality)) ?? 0) + (c.end - c.start))
+  const total = [...dur.values()].reduce((a, b) => a + b, 0) || 1
+  const durs = res.chords.map((c) => c.end - c.start).sort((a, b) => a - b)
+  const median = durs.length ? durs[durs.length >> 1] : 0
+
+  if (!expect) {
+    console.log(`  ${name.padEnd(16)} ${res.chords.length} acordes · mediana ${median.toFixed(2)}s · tono ${res.key}  (sin ground truth)`)
+    return
+  }
+  const inSet = [...dur.entries()].filter(([k]) => expect.includes(k)).reduce((a, [, d]) => a + d, 0)
+  const pct = Math.round((inSet / total) * 100)
+  const intruders = [...dur.entries()]
+    .filter(([k]) => !expect.includes(k))
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 6)
+    .map(([k, d]) => `${k}:${Math.round((d / total) * 100)}%`)
+    .join(' ')
+  console.log(
+    `  ${name.padEnd(16)} en-set ${String(pct).padStart(3)}%  ·  ${res.chords.length} acordes · mediana ${median.toFixed(2)}s · tono ${res.key}` +
+      (intruders ? `\n  ${' '.repeat(16)} intrusos: ${intruders}` : ''),
+  )
+}
+
 const args = process.argv.slice(2)
 
 const PROG: Array<[number, 'maj' | 'min']> = [[0, 'maj'], [7, 'maj'], [9, 'min'], [5, 'maj']]
@@ -181,7 +218,24 @@ function accuracy(gen: (p: Array<[number, 'maj' | 'min']>, s: number) => { sampl
   if (misses.length) console.log('  fallos: ' + misses.join('  '))
 }
 
-if (args.includes('--accuracy')) {
+if (args.includes('--bench')) {
+  // Síntesis: % de acierto en 24 acordes.
+  const accPct = (gen: typeof synth) => {
+    let ok = 0
+    for (let r = 0; r < 12; r++) for (const q of ['maj', 'min'] as const) {
+      const a = gen([[r, q]], 3)
+      if (dominantChord(analyzeAudio(a.samples, a.rate)) === NOTE[r] + (q === 'min' ? 'm' : '')) ok++
+    }
+    return `${ok}/24`
+  }
+  console.log('\n━━━ BENCH ━━━')
+  console.log(`  synth   limpio ${accPct(synth)}  ·  realista ${accPct(synthNoisy)}  ·  inversión ${accPct(synthInverted)}`)
+  const dir = existsSync('test-audio') ? readdirSync('test-audio') : []
+  const find = (sub: string) => { const f = dir.find((x) => x.toLowerCase().includes(sub)); return f ? join('test-audio', f) : '' }
+  bench(find('heaven'), "Knockin' (G)", ['G', 'D', 'Am', 'C'])
+  bench(find('zombie'), 'Zombie (Em)', ['Em', 'C', 'G', 'D'])
+  bench(find('audiotest'), 'audiotest', null)
+} else if (args.includes('--accuracy')) {
   accuracy(synth, 'timbre limpio')
   accuracy(synthNoisy, 'timbre realista')
   accuracy(synthInverted, '1ª inversión (3ª al bajo)')
