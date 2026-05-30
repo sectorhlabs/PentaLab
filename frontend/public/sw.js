@@ -21,7 +21,13 @@ self.addEventListener('activate', (event) => {
 
 self.addEventListener('fetch', (event) => {
   const { request } = event
-  if (request.method !== 'GET' || new URL(request.url).origin !== self.location.origin) {
+  const url = new URL(request.url)
+  if (request.method !== 'GET' || url.origin !== self.location.origin) {
+    return
+  }
+
+  // Las rutas de auth nunca se cachean: deben golpear siempre la red.
+  if (url.pathname.startsWith('/api/')) {
     return
   }
 

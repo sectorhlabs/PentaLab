@@ -1,7 +1,8 @@
 import { useState } from 'react'
-import { User, HelpCircle, Server, Info } from 'lucide-react'
+import { User, HelpCircle, Server, Info, LogOut, Download, Share, Check } from 'lucide-react'
 import { getBackendUrl, setBackendUrl, isBackendAvailable } from '../services/api'
 import { useSettingsStore } from '../stores/settingsStore'
+import { usePwaInstall } from '../hooks/usePwaInstall'
 import { Wordmark, Signature } from '../components/decor'
 import { BottomSheet } from '../components/BottomSheet'
 
@@ -15,6 +16,14 @@ export default function SettingsPage() {
   const [conn, setConn] = useState<ConnState>('idle')
   const [showInfo, setShowInfo] = useState(false)
   const [showAbout, setShowAbout] = useState(false)
+  const [showInstall, setShowInstall] = useState(false)
+
+  const { installed, canInstall, isIOS, promptInstall } = usePwaInstall()
+  const showInstallSection = !installed && (canInstall || isIOS)
+
+  const logout = async () => {
+    try { await fetch('/api/logout', { method: 'POST' }) } finally { location.reload() }
+  }
 
   const save = (v: string) => { setUrl(v); setBackendUrl(v); setConn('idle') }
   const test = async () => { setConn('checking'); setConn((await isBackendAvailable()) ? 'ok' : 'fail') }
@@ -92,6 +101,29 @@ export default function SettingsPage() {
         </div>
       </section>
 
+      {/* Instalar en el dispositivo */}
+      {showInstallSection && (
+        <section className="mb-6">
+          <h2 className="text-xs font-semibold text-ink-faint uppercase tracking-[0.12em] mb-2 px-1">Pantalla de inicio</h2>
+          <div className="sheet !p-0 overflow-hidden">
+            <button
+              onClick={() => (canInstall ? promptInstall() : setShowInstall(true))}
+              className="w-full flex items-center gap-4 p-4 touch-target text-left"
+            >
+              <span className="grid place-items-center w-9 h-9 rounded-full bg-terracota/[0.12] text-terracota shrink-0">
+                <Download className="w-4 h-4" />
+              </span>
+              <span className="flex-1">
+                <span className="block text-ink">Instalar PentaLab</span>
+                <span className="block text-xs text-ink-faint mt-0.5">
+                  {canInstall ? 'Añádela como app a tu pantalla de inicio' : 'Cómo añadirla en iPhone/iPad'}
+                </span>
+              </span>
+            </button>
+          </div>
+        </section>
+      )}
+
       {/* Ayuda */}
       <section>
         <h2 className="text-xs font-semibold text-ink-faint uppercase tracking-[0.12em] mb-2 px-1">Ayuda</h2>
@@ -105,6 +137,17 @@ export default function SettingsPage() {
             </span>
             <span className="flex-1 text-ink">Sobre PentaLab</span>
           </button>
+          {import.meta.env.PROD && (
+            <button
+              onClick={logout}
+              className="w-full flex items-center gap-4 p-4 touch-target text-left border-t border-paper-line"
+            >
+              <span className="grid place-items-center w-9 h-9 rounded-full bg-magenta/[0.12] text-magenta">
+                <LogOut className="w-4 h-4" />
+              </span>
+              <span className="flex-1 text-ink">Cerrar sesión</span>
+            </button>
+          )}
         </div>
       </section>
 
@@ -165,6 +208,31 @@ export default function SettingsPage() {
             Cerrar
           </button>
         </div>
+      </BottomSheet>
+
+      <BottomSheet open={showInstall} onClose={() => setShowInstall(false)} title="Añadir a la pantalla de inicio">
+        <div className="space-y-4 text-sm text-ink-soft leading-relaxed">
+          <p>En iPhone/iPad la instalación se hace desde Safari en tres pasos:</p>
+          <ol className="space-y-3">
+            <li className="flex items-center gap-3">
+              <span className="grid place-items-center w-7 h-7 rounded-full bg-terracota/[0.12] text-terracota font-mono text-xs shrink-0">1</span>
+              <span className="flex-1">Pulsa el botón <strong className="text-ink font-semibold">Compartir</strong>.</span>
+              <Share className="w-5 h-5 text-cobalto shrink-0" />
+            </li>
+            <li className="flex items-center gap-3">
+              <span className="grid place-items-center w-7 h-7 rounded-full bg-terracota/[0.12] text-terracota font-mono text-xs shrink-0">2</span>
+              <span className="flex-1">Elige <strong className="text-ink font-semibold">«Añadir a pantalla de inicio»</strong>.</span>
+            </li>
+            <li className="flex items-center gap-3">
+              <span className="grid place-items-center w-7 h-7 rounded-full bg-terracota/[0.12] text-terracota font-mono text-xs shrink-0">3</span>
+              <span className="flex-1">Confirma con <strong className="text-ink font-semibold">«Añadir»</strong>.</span>
+              <Check className="w-5 h-5 text-oliva shrink-0" />
+            </li>
+          </ol>
+        </div>
+        <button onClick={() => setShowInstall(false)} className="btn btn-primary w-full mt-6">
+          Entendido
+        </button>
       </BottomSheet>
     </div>
   )
