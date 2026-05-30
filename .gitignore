@@ -12,6 +12,10 @@ dist/
 *.db
 backend/data/
 
+# Audios de prueba del detector (privados/pesados); se conserva la carpeta
+frontend/test-audio/*
+!frontend/test-audio/.gitkeep
+
 # Entorno y sistema
 .env
 .env.*

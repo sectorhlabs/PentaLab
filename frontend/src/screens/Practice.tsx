@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback, memo } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Play, Pause, SkipBack, SkipForward, Volume2, Repeat, Pencil, Check, Plus, Timer } from 'lucide-react'
+import { Play, Pause, SkipBack, SkipForward, Volume2, Repeat, Pencil, Check, Plus, Timer, Download } from 'lucide-react'
 import { useRecordingStore } from '../stores/recordingStore'
 import { getAudioBlob } from '../services/storage'
 import { PaintBlob } from '../components/decor'
@@ -94,6 +94,24 @@ export default function Practice() {
     else audio.play().catch((err) => console.error('No se pudo reproducir:', err))
   }
 
+  const downloadAudio = async () => {
+    if (!currentRecording) return
+    const blob = await getAudioBlob(currentRecording.id)
+    if (!blob) return
+    const ext = blob.type.includes('mp4') ? 'm4a'
+      : blob.type.includes('webm') ? 'webm'
+      : blob.type.includes('ogg') ? 'ogg'
+      : blob.type.includes('wav') ? 'wav' : 'audio'
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `${(currentRecording.title || 'pentalab').replace(/[^\w\-]+/g, '_')}.${ext}`
+    document.body.appendChild(a)
+    a.click()
+    a.remove()
+    setTimeout(() => URL.revokeObjectURL(url), 1000)
+  }
+
   const seekTo = useCallback((time: number) => {
     const audio = audioRef.current
     if (!audio) return
@@ -180,6 +198,13 @@ export default function Practice() {
               aria-label="Renombrar"
             >
               <Pencil className="w-4 h-4" />
+            </button>
+            <button
+              onClick={downloadAudio}
+              className="grid place-items-center w-8 h-8 rounded-full text-ink-faint hover:text-cobalto hover:bg-cobalto/10 shrink-0"
+              aria-label="Descargar audio"
+            >
+              <Download className="w-4 h-4" />
             </button>
           </div>
         )}
