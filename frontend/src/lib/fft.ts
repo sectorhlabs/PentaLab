@@ -44,10 +44,3 @@ export function fftRadix2(re: Float32Array, im: Float32Array): void {
     }
   }
 }
-
-/** Próxima potencia de 2 mayor o igual a n. */
-export function nextPow2(n: number): number {
-  let p = 1
-  while (p < n) p <<= 1
-  return p
-}

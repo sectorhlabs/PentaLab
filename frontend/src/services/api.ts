@@ -1,10 +1,3 @@
-export interface Recording {
-  id: string
-  title: string
-  duration: number | null
-  created_at: string
-}
-
 export interface Chord {
   start: number
   end: number
@@ -56,13 +49,7 @@ export async function isBackendAvailable(): Promise<boolean> {
   }
 }
 
-export const api = {
-  async listRecordings(): Promise<Recording[]> {
-    const res = await fetch(`${apiBase()}/recordings`)
-    if (!res.ok) throw new Error('Failed to fetch recordings')
-    return res.json()
-  },
-
+const api = {
   async uploadRecording(blob: Blob, filename = 'recording.webm'): Promise<{ id: string }> {
     const formData = new FormData()
     formData.append('file', blob, filename)
