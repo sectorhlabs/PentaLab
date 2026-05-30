@@ -16,10 +16,11 @@ export interface RecordingData {
 interface RecordingStore {
   recordings: RecordingData[]
   currentRecording: RecordingData | null
-  
+
   addRecording: (recording: RecordingData) => void
   setCurrentRecording: (recording: RecordingData | null) => void
   updateCurrentChords: (chords: Chord[]) => void
+  renameRecording: (id: string, title: string) => void
   deleteRecording: (id: string) => void
   getRecording: (id: string) => RecordingData | undefined
 }
@@ -29,17 +30,17 @@ export const useRecordingStore = create<RecordingStore>()(
     (set, get) => ({
       recordings: [],
       currentRecording: null,
-      
+
       addRecording: (recording) => {
         set((state) => ({
           recordings: [recording, ...state.recordings]
         }))
       },
-      
+
       setCurrentRecording: (recording) => {
         set({ currentRecording: recording })
       },
-      
+
       updateCurrentChords: (chords) => {
         set((state) => {
           if (!state.currentRecording) return state
@@ -51,7 +52,16 @@ export const useRecordingStore = create<RecordingStore>()(
           }
         })
       },
-      
+
+      renameRecording: (id, title) => {
+        set((state) => ({
+          recordings: state.recordings.map(r => r.id === id ? { ...r, title } : r),
+          currentRecording: state.currentRecording?.id === id
+            ? { ...state.currentRecording, title }
+            : state.currentRecording
+        }))
+      },
+
       deleteRecording: (id) => {
         // El audio vive en IndexedDB; lo eliminamos junto con la metadata.
         void deleteAudioBlob(id).catch(() => {})
@@ -60,7 +70,7 @@ export const useRecordingStore = create<RecordingStore>()(
           currentRecording: state.currentRecording?.id === id ? null : state.currentRecording
         }))
       },
-      
+
       getRecording: (id) => {
         return get().recordings.find(r => r.id === id)
       }

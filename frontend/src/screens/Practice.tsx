@@ -1,17 +1,44 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useCallback, memo } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Play, Pause, SkipBack, SkipForward, Volume2, Repeat } from 'lucide-react'
+import { Play, Pause, SkipBack, SkipForward, Volume2, Repeat, Pencil, Check } from 'lucide-react'
 import { useRecordingStore } from '../stores/recordingStore'
 import { getAudioBlob } from '../services/storage'
+import { PaintBlob } from '../components/decor'
+import type { Chord } from '../services/api'
 
 const PLAYBACK_RATES = [1, 0.75, 0.5] as const
 
 const chordLabel = (root: string, quality: string) =>
   `${root}${quality === 'minor' || quality === 'minor7' ? 'm' : ''}`
 
+const fmtTime = (s: number) => `${Math.floor(s / 60)}:${Math.floor(s % 60).toString().padStart(2, '0')}`
+
+// Fila memoizada: solo se re-renderiza si cambia su estado activo.
+const ChordRow = memo(function ChordRow({
+  chord, active, onSeek,
+}: { chord: Chord; active: boolean; onSeek: (t: number) => void }) {
+  return (
+    <button
+      onClick={() => onSeek(chord.start)}
+      className={`w-full flex items-center gap-3 py-2.5 px-3 edge-painted-sm text-left transition-colors
+        ${active ? 'bg-magenta/[0.12]' : 'hover:bg-ink/5'}`}
+    >
+      <span className="font-mono text-xs text-ink-faint w-9">{fmtTime(chord.start)}</span>
+      <span className={`font-display font-semibold w-12 ${active ? 'text-magenta' : 'text-ink'}`}>
+        {chordLabel(chord.root, chord.quality)}
+      </span>
+      <span className="ml-auto font-mono text-[11px] text-ink-faint">{Math.round(chord.confidence * 100)}%</span>
+    </button>
+  )
+})
+
 export default function Practice() {
   const navigate = useNavigate()
   const currentRecording = useRecordingStore((s) => s.currentRecording)
+  const renameRecording = useRecordingStore((s) => s.renameRecording)
+
+  const [editingTitle, setEditingTitle] = useState(false)
+  const [titleDraft, setTitleDraft] = useState('')
 
   const audioRef = useRef<HTMLAudioElement>(null)
   const progressRef = useRef<HTMLDivElement>(null)
@@ -26,12 +53,10 @@ export default function Practice() {
 
   const chords = currentRecording?.chords ?? []
 
-  // Carga el audio desde IndexedDB y lo asigna al elemento <audio>.
   useEffect(() => {
     if (!currentRecording) return
     let url: string | null = null
     let cancelled = false
-
     getAudioBlob(currentRecording.id)
       .then((blob) => {
         if (!blob || cancelled || !audioRef.current) return
@@ -40,101 +65,74 @@ export default function Practice() {
         setAudioReady(true)
       })
       .catch((err) => console.error('No se pudo cargar el audio:', err))
-
     return () => {
       cancelled = true
       if (url) URL.revokeObjectURL(url)
     }
   }, [currentRecording])
 
-  // Aplica velocidad y volumen al elemento de audio.
-  useEffect(() => {
-    if (audioRef.current) audioRef.current.playbackRate = playbackRate
-  }, [playbackRate, audioReady])
+  useEffect(() => { if (audioRef.current) audioRef.current.playbackRate = playbackRate }, [playbackRate, audioReady])
+  useEffect(() => { if (audioRef.current) audioRef.current.volume = volume }, [volume, audioReady])
+  useEffect(() => { if (audioRef.current) audioRef.current.loop = isLooping }, [isLooping, audioReady])
 
-  useEffect(() => {
-    if (audioRef.current) audioRef.current.volume = volume
-  }, [volume, audioReady])
-
-  useEffect(() => {
-    if (audioRef.current) audioRef.current.loop = isLooping
-  }, [isLooping, audioReady])
-
-  const currentChord = chords.find(c => currentTime >= c.start && currentTime < c.end)
-  const currentChordIndex = chords.findIndex(c => currentTime >= c.start && currentTime < c.end)
+  const currentChord = chords.find((c) => currentTime >= c.start && currentTime < c.end)
+  const currentChordIndex = chords.findIndex((c) => currentTime >= c.start && currentTime < c.end)
 
   const togglePlay = () => {
     const audio = audioRef.current
     if (!audio || !audioReady) return
-    if (isPlaying) {
-      audio.pause()
-    } else {
-      audio.play().catch((err) => console.error('No se pudo reproducir:', err))
-    }
+    if (isPlaying) audio.pause()
+    else audio.play().catch((err) => console.error('No se pudo reproducir:', err))
   }
 
-  const seekTo = (time: number) => {
+  const seekTo = useCallback((time: number) => {
     const audio = audioRef.current
     if (!audio) return
     const clamped = Math.max(0, Math.min(time, duration || time))
     audio.currentTime = clamped
     setCurrentTime(clamped)
-  }
+  }, [duration])
 
-  const skipToAdjacentChord = (direction: 1 | -1) => {
-    if (chords.length === 0) {
-      seekTo(currentTime + direction * 5)
-      return
-    }
-    if (direction === 1) {
-      const next = chords.find(c => c.start > currentTime + 0.05)
+  const skip = (dir: 1 | -1) => {
+    if (chords.length === 0) return seekTo(currentTime + dir * 5)
+    if (dir === 1) {
+      const next = chords.find((c) => c.start > currentTime + 0.05)
       seekTo(next ? next.start : duration)
     } else {
-      const prev = [...chords].reverse().find(c => c.start < currentTime - 0.05)
+      const prev = [...chords].reverse().find((c) => c.start < currentTime - 0.05)
       seekTo(prev ? prev.start : 0)
     }
   }
 
-  const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60)
-    const secs = Math.floor(seconds % 60)
-    return `${mins}:${secs.toString().padStart(2, '0')}`
-  }
+  const fmt = (s: number) => `${Math.floor(s / 60)}:${Math.floor(s % 60).toString().padStart(2, '0')}`
 
-  const handleProgressClick = (e: React.MouseEvent<HTMLDivElement>) => {
+  const onProgressClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!progressRef.current || !duration) return
     const rect = progressRef.current.getBoundingClientRect()
-    const percentage = (e.clientX - rect.left) / rect.width
-    seekTo(percentage * duration)
+    seekTo(((e.clientX - rect.left) / rect.width) * duration)
   }
 
   if (!currentRecording) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[calc(100dvh-160px)] text-center">
-        <h1 className="text-xl font-bold text-text-primary mb-2">Nada que practicar</h1>
-        <p className="text-sm text-text-secondary mb-6 max-w-[260px]">
-          Selecciona una grabación de tu biblioteca o crea una nueva.
+      <div className="flex flex-col items-center justify-center text-center min-h-[70dvh]">
+        <PaintBlob variant={1} className="w-28 h-28 text-terracota/25 mb-5" />
+        <h1 className="font-display text-2xl font-semibold text-ink mb-2">Nada que tocar todavía</h1>
+        <p className="text-sm text-ink-soft mb-6 max-w-[260px]">
+          Elige una lámina de tu cuaderno o graba una nueva.
         </p>
         <div className="flex gap-3">
-          <button onClick={() => navigate('/library')} className="btn btn-secondary">
-            Ir a biblioteca
-          </button>
-          <button onClick={() => navigate('/create')} className="btn btn-primary">
-            Grabar
-          </button>
+          <button onClick={() => navigate('/library')} className="btn btn-secondary">Cuaderno</button>
+          <button onClick={() => navigate('/create')} className="btn btn-primary">Grabar</button>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="flex flex-col min-h-[calc(100dvh-80px)]">
+    <div className="flex flex-col">
       <audio
         ref={audioRef}
-        onLoadedMetadata={(e) => {
-          const d = e.currentTarget.duration
-          if (Number.isFinite(d) && d > 0) setDuration(d)
-        }}
+        onLoadedMetadata={(e) => { const d = e.currentTarget.duration; if (Number.isFinite(d) && d > 0) setDuration(d) }}
         onTimeUpdate={(e) => setCurrentTime(e.currentTarget.currentTime)}
         onPlay={() => setIsPlaying(true)}
         onPause={() => setIsPlaying(false)}
@@ -142,151 +140,133 @@ export default function Practice() {
         hidden
       />
 
-      <header className="mb-6">
-        <h1 className="text-2xl font-bold text-text-primary">Practicar</h1>
-        <p className="text-sm text-text-secondary mt-1 truncate">{currentRecording.title}</p>
+      <header className="mb-5">
+        {editingTitle ? (
+          <div className="flex items-center gap-2">
+            <input
+              autoFocus
+              value={titleDraft}
+              onChange={(e) => setTitleDraft(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') { if (titleDraft.trim()) renameRecording(currentRecording.id, titleDraft.trim()); setEditingTitle(false) }
+                if (e.key === 'Escape') setEditingTitle(false)
+              }}
+              onBlur={() => { if (titleDraft.trim()) renameRecording(currentRecording.id, titleDraft.trim()); setEditingTitle(false) }}
+              className="flex-1 min-w-0 bg-paper border border-terracota/50 edge-painted-sm px-2.5 py-1 font-display text-2xl font-semibold text-ink focus:outline-none"
+            />
+            <button
+              onClick={() => { if (titleDraft.trim()) renameRecording(currentRecording.id, titleDraft.trim()); setEditingTitle(false) }}
+              className="grid place-items-center w-9 h-9 rounded-full text-oliva hover:bg-oliva/10 shrink-0"
+              aria-label="Guardar nombre"
+            >
+              <Check className="w-5 h-5" />
+            </button>
+          </div>
+        ) : (
+          <div className="flex items-center gap-2">
+            <h1 className="font-display text-2xl font-semibold text-ink truncate">{currentRecording.title}</h1>
+            <button
+              onClick={() => { setTitleDraft(currentRecording.title); setEditingTitle(true) }}
+              className="grid place-items-center w-8 h-8 rounded-full text-ink-faint hover:text-terracota hover:bg-terracota/10 shrink-0"
+              aria-label="Renombrar"
+            >
+              <Pencil className="w-4 h-4" />
+            </button>
+          </div>
+        )}
         {(currentRecording.key || currentRecording.tempo) && (
-          <div className="flex gap-2 mt-2 font-mono text-xs">
+          <div className="flex gap-2 mt-2">
             {currentRecording.key && (
-              <span className="px-2 py-1 rounded bg-bg-elevated text-text-secondary">
-                Tono: {currentRecording.key}
-              </span>
+              <span className="pigment text-xs px-2.5 py-1 bg-magenta/[0.12] text-magenta">Tono {currentRecording.key}</span>
             )}
             {currentRecording.tempo && (
-              <span className="px-2 py-1 rounded bg-bg-elevated text-text-secondary">
-                {currentRecording.tempo} BPM
-              </span>
+              <span className="pigment text-xs px-2.5 py-1 bg-cobalto/[0.12] text-cobalto">{currentRecording.tempo} BPM</span>
             )}
           </div>
         )}
       </header>
 
-      {/* Chord Display */}
-      <div className="flex justify-center mb-8">
-        <div className="bg-accent-primary/10 border-2 border-accent-primary rounded-2xl px-12 py-6 text-center min-w-[160px]">
-          <span className="font-mono text-5xl font-bold text-accent-primary">
-            {currentChord ? chordLabel(currentChord.root, currentChord.quality) : '—'}
-          </span>
-          <span className="block text-sm text-text-secondary mt-2">
-            {currentChord?.quality ?? 'esperando'}
-          </span>
-        </div>
-      </div>
-
-      {/* Chord timeline */}
-      <div className="flex-1 overflow-hidden mb-6">
-        <div className="h-full overflow-y-auto py-2">
-          {chords.length === 0 ? (
-            <p className="text-center text-sm text-text-muted py-8">
-              No se detectaron acordes en esta grabación.
-            </p>
-          ) : (
-            chords.map((chord, i) => (
-              <button
-                key={i}
-                onClick={() => seekTo(chord.start)}
-                className={`w-full flex items-center gap-3 py-3 px-4 rounded-lg transition-all duration-300 text-left ${
-                  i === currentChordIndex
-                    ? 'bg-accent-primary/20 font-medium'
-                    : 'text-text-secondary'
-                }`}
-              >
-                <span className="font-mono text-xs text-text-muted w-10">
-                  {formatTime(chord.start)}
-                </span>
-                <span className="font-mono font-bold text-text-primary w-12">
-                  {chordLabel(chord.root, chord.quality)}
-                </span>
-                <span className="text-xs text-text-muted ml-auto">
-                  {Math.round(chord.confidence * 100)}%
-                </span>
-              </button>
-            ))
-          )}
-        </div>
-      </div>
-
-      {/* Progress Bar */}
-      <div
-        ref={progressRef}
-        onClick={handleProgressClick}
-        className="h-2 bg-bg-elevated rounded-full cursor-pointer mb-4 touch-target"
-      >
-        <div
-          className="h-full bg-gradient-to-r from-accent-primary to-accent-secondary rounded-full"
-          style={{ width: `${duration ? (currentTime / duration) * 100 : 0}%` }}
+      {/* Acorde actual: pigmento sobre el lienzo. */}
+      <div className="relative grid place-items-center py-6 mb-4">
+        <PaintBlob
+          variant={0}
+          className={`absolute w-48 h-48 transition-colors duration-300 ${currentChord ? 'text-magenta/20' : 'text-paper-line/60'}`}
         />
+        <div className="relative text-center">
+          <span className="font-display text-[5rem] leading-none font-semibold text-ink">
+            {currentChord ? chordLabel(currentChord.root, currentChord.quality) : '·'}
+          </span>
+          <span className="block text-sm text-ink-faint mt-1">
+            {currentChord ? currentChord.quality : 'esperando'}
+          </span>
+        </div>
       </div>
 
-      {/* Time Display */}
-      <div className="flex justify-between text-xs text-text-muted font-mono mb-4">
-        <span>{formatTime(currentTime)}</span>
-        <span>{formatTime(duration)}</span>
+      {/* Línea de acordes. */}
+      <div className="-mx-1 px-1 mb-4">
+        {chords.length === 0 ? (
+          <p className="text-center text-sm text-ink-faint py-6">Esta lámina no tiene acordes.</p>
+        ) : (
+          <div className="space-y-1">
+            {chords.map((c, i) => (
+              <ChordRow key={i} chord={c} active={i === currentChordIndex} onSeek={seekTo} />
+            ))}
+          </div>
+        )}
       </div>
 
-      {/* Controls */}
-      <div className="flex items-center justify-center gap-6">
+      {/* Barra de progreso. */}
+      <div ref={progressRef} onClick={onProgressClick} className="h-2.5 bg-paper-line rounded-full cursor-pointer mb-2 touch-target">
+        <div className="h-full bg-terracota rounded-full" style={{ width: `${duration ? (currentTime / duration) * 100 : 0}%` }} />
+      </div>
+      <div className="flex justify-between font-mono text-xs text-ink-faint mb-5">
+        <span>{fmt(currentTime)}</span>
+        <span>{fmt(duration)}</span>
+      </div>
+
+      {/* Controles. */}
+      <div className="flex items-center justify-center gap-5">
         <button
           onClick={() => setIsLooping(!isLooping)}
-          className={`w-10 h-10 rounded-full flex items-center justify-center touch-target ${
-            isLooping ? 'bg-accent-primary text-white' : 'bg-bg-elevated text-text-secondary'
-          }`}
+          className={`grid place-items-center w-10 h-10 rounded-full touch-target transition-colors
+            ${isLooping ? 'bg-teal text-paper' : 'bg-paper-deep border border-paper-line text-ink-soft'}`}
           aria-label="Repetir"
         >
           <Repeat className="w-5 h-5" />
         </button>
-
-        <button
-          onClick={() => skipToAdjacentChord(-1)}
-          className="w-12 h-12 rounded-full bg-bg-elevated flex items-center justify-center touch-target"
-          aria-label="Acorde anterior"
-        >
-          <SkipBack className="w-5 h-5 text-text-secondary" />
+        <button onClick={() => skip(-1)} className="grid place-items-center w-12 h-12 rounded-full bg-paper-deep border border-paper-line text-ink-soft touch-target" aria-label="Anterior">
+          <SkipBack className="w-5 h-5" />
         </button>
-
         <button
           onClick={togglePlay}
           disabled={!audioReady}
-          className="w-16 h-16 rounded-full bg-accent-primary flex items-center justify-center touch-target shadow-lg shadow-accent-primary/30 disabled:opacity-50"
+          className="grid place-items-center w-16 h-16 rounded-full bg-terracota text-paper shadow-[0_6px_20px_oklch(0.62_0.15_45_/_0.4)] active:scale-95 transition-transform disabled:opacity-45"
           aria-label={isPlaying ? 'Pausar' : 'Reproducir'}
         >
-          {isPlaying ? (
-            <Pause className="w-7 h-7 text-white" />
-          ) : (
-            <Play className="w-7 h-7 text-white ml-1" />
-          )}
+          {isPlaying ? <Pause className="w-7 h-7" fill="currentColor" /> : <Play className="w-7 h-7 ml-0.5" fill="currentColor" />}
         </button>
-
-        <button
-          onClick={() => skipToAdjacentChord(1)}
-          className="w-12 h-12 rounded-full bg-bg-elevated flex items-center justify-center touch-target"
-          aria-label="Acorde siguiente"
-        >
-          <SkipForward className="w-5 h-5 text-text-secondary" />
+        <button onClick={() => skip(1)} className="grid place-items-center w-12 h-12 rounded-full bg-paper-deep border border-paper-line text-ink-soft touch-target" aria-label="Siguiente">
+          <SkipForward className="w-5 h-5" />
         </button>
-
         <button
-          onClick={() => setPlaybackRate(r => {
+          onClick={() => setPlaybackRate((r) => {
             const idx = PLAYBACK_RATES.indexOf(r as typeof PLAYBACK_RATES[number])
             return PLAYBACK_RATES[(idx + 1) % PLAYBACK_RATES.length]
           })}
-          className="w-10 h-10 rounded-full bg-bg-elevated flex items-center justify-center touch-target"
-          aria-label="Velocidad de reproducción"
+          className="grid place-items-center w-10 h-10 rounded-full bg-paper-deep border border-paper-line touch-target"
+          aria-label="Velocidad"
         >
-          <span className="text-xs font-mono text-text-secondary">{playbackRate}x</span>
+          <span className="font-mono text-xs text-ink-soft">{playbackRate}x</span>
         </button>
       </div>
 
-      {/* Volume */}
-      <div className="flex items-center gap-3 mt-6 px-2">
-        <Volume2 className="w-5 h-5 text-text-muted" />
+      {/* Volumen. */}
+      <div className="flex items-center gap-3 mt-6 px-1">
+        <Volume2 className="w-5 h-5 text-ink-faint" />
         <input
-          type="range"
-          min="0"
-          max="100"
-          value={Math.round(volume * 100)}
+          type="range" min="0" max="100" value={Math.round(volume * 100)}
           onChange={(e) => setVolume(Number(e.target.value) / 100)}
-          className="w-32 accent-accent-primary"
+          className="flex-1 accent-terracota"
         />
       </div>
     </div>

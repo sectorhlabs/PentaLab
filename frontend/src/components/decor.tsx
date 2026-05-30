@@ -27,23 +27,23 @@ export function PaintBlob({ className = '', variant = 0 }: BlobProps) {
   )
 }
 
-/** Marca de la app. Fraunces + punto de pigmento. */
+/** Marca de la app: logotipo (matraz + pentagrama) + nombre en Fraunces. */
 export function Wordmark({ className = '' }: { className?: string }) {
   return (
-    <span className={`font-display inline-flex items-baseline gap-1 ${className}`}>
+    <span className={`font-display inline-flex items-center gap-2 ${className}`}>
+      <img src="/logo-mark.png" alt="" aria-hidden="true" className="h-[1.5em] w-auto" />
       <span className="font-semibold tracking-tight">PentaLab</span>
-      <span className="inline-block w-1.5 h-1.5 rounded-full bg-terracota translate-y-[-2px]" />
     </span>
   )
 }
 
-/** Firma de la artista, como en sus cuadros (abajo a la derecha). */
-export function Signature({ className = '' }: { className?: string }) {
+/** Firma del artista, como en sus cuadros (abajo a la derecha). */
+export function Signature({ className = '', name = 'mekala' }: { className?: string; name?: string }) {
   return (
     <span
       className={`font-display italic text-ink-faint tracking-[0.3em] text-xs ${className}`}
     >
-      mekala
+      {name.toLowerCase()}
     </span>
   )
 }

@@ -1,8 +1,19 @@
+# Dependencias
 node_modules/
-dist/
+.venv/
 __pycache__/
 *.pyc
+
+# Builds
+dist/
+*.tsbuildinfo
+
+# Datos locales del backend
+*.db
 backend/data/
+
+# Entorno y sistema
+.env
+.env.*
 .DS_Store
-.venv/
-venv/
+*.log

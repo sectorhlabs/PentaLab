@@ -388,8 +388,8 @@ function buildChords(
 
 /**
  * Pipeline completo y puro (sin AudioBuffer): mono samples → decimación →
- * espectro → chroma armónico → Viterbi → acordes, tonalidad y tempo.
- * Pensado para ejecutarse dentro de un Web Worker.
+ * espectro → chroma → Viterbi → acordes, tonalidad y tempo. Pensado para
+ * ejecutarse dentro de un Web Worker.
  */
 export function analyzeAudio(
   samples: Float32Array,

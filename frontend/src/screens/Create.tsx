@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Mic, Square, Check } from 'lucide-react'
 import { useAudioRecorder } from '../hooks/useAudioRecorder'
@@ -13,6 +13,9 @@ export default function Create() {
 
   const addRecording = useRecordingStore((s) => s.addRecording)
   const setCurrentRecording = useRecordingStore((s) => s.setCurrentRecording)
+  const renameRecording = useRecordingStore((s) => s.renameRecording)
+  const savedIdRef = useRef<string | null>(null)
+  const [titleDraft, setTitleDraft] = useState('')
 
   const {
     status, duration, progress, chords, musicKey, tempo, error,
@@ -28,6 +31,8 @@ export default function Create() {
     if (status === 'idle') {
       hasProcessedRef.current = false
       savedRef.current = false
+      savedIdRef.current = null
+      setTitleDraft('')
     }
     if (status === 'complete') hasProcessedRef.current = false
   }, [status, audioBlob, processRecording])
@@ -47,6 +52,8 @@ export default function Create() {
       .then(() => {
         addRecording(recording)
         setCurrentRecording(recording)
+        savedIdRef.current = id
+        setTitleDraft(title)
       })
       .catch((err) => console.error('No se pudo guardar la grabación:', err))
   }, [status, audioBlob, duration, chords, musicKey, tempo, addRecording, setCurrentRecording])
@@ -92,12 +99,12 @@ export default function Create() {
       case 'recording':
         return (
           <div className="flex flex-col items-center w-full">
-            <div className="flex items-end justify-center gap-[3px] h-24 w-full max-w-[300px] mb-8">
+            <div className="flex items-center justify-center gap-[3px] h-24 w-full max-w-[300px] mb-8">
               {Array.from({ length: 44 }).map((_, i) => (
                 <span
                   key={i}
-                  className="flex-1 bg-terracota rounded-full"
-                  style={{ height: `${Math.random() * 70 + 14}%`, opacity: 0.75 }}
+                  className="flex-1 h-full bg-terracota/75 rounded-full animate-wave"
+                  style={{ animationDelay: `${(i % 12) * 70}ms` }}
                 />
               ))}
             </div>
@@ -150,24 +157,40 @@ export default function Create() {
               <Check className="w-10 h-10" strokeWidth={2.4} />
             </span>
             <h2 className="font-display text-2xl font-semibold text-ink">¡Lámina lista!</h2>
-            <p className="text-ink-soft mt-1 mb-1">
+            <p className="text-ink-soft mt-1 mb-4">
               {chords.length} {chords.length === 1 ? 'acorde' : 'acordes'}
               {musicKey ? ` · ${musicKey}` : ''}{tempo ? ` · ${tempo} BPM` : ''}
             </p>
 
+            <label className="w-full max-w-[300px] text-left">
+              <span className="block text-xs text-ink-faint mb-1.5 px-1">Ponle nombre</span>
+              <input
+                type="text"
+                value={titleDraft}
+                onChange={(e) => {
+                  setTitleDraft(e.target.value)
+                  if (savedIdRef.current && e.target.value.trim()) {
+                    renameRecording(savedIdRef.current, e.target.value.trim())
+                  }
+                }}
+                placeholder="Mi canción"
+                className="w-full bg-paper-deep border border-paper-line edge-painted-sm px-3 py-2.5 font-display text-lg text-ink placeholder:text-ink-faint focus:outline-none focus:border-terracota/50"
+              />
+            </label>
+
             <div className="flex flex-wrap justify-center gap-2 my-5 max-w-[300px]">
               {chords.slice(0, 6).map((c, i) => (
-                <span key={i} className="pigment px-3 py-1.5 text-sm bg-magenta/12 text-magenta">
+                <span key={i} className="pigment px-3 py-1.5 text-sm bg-magenta/[0.12] text-magenta">
                   {c.root}{c.quality === 'minor' ? 'm' : ''}
                 </span>
               ))}
               {chords.length > 6 && (
-                <span className="pigment px-3 py-1.5 text-sm bg-ink/8 text-ink-soft">+{chords.length - 6}</span>
+                <span className="pigment px-3 py-1.5 text-sm bg-ink/[0.08] text-ink-soft">+{chords.length - 6}</span>
               )}
             </div>
 
             <div className="flex gap-3 w-full max-w-[300px]">
-              <button className="btn btn-secondary flex-1" onClick={() => { reset(); navigate('/library') }}>
+              <button className="btn btn-secondary flex-1" onClick={() => { reset(); navigate('/') }}>
                 Al cuaderno
               </button>
               <button className="btn btn-primary flex-1" onClick={() => navigate('/practice')}>
@@ -180,8 +203,8 @@ export default function Create() {
   }
 
   return (
-    <div className="relative flex flex-col min-h-[calc(100dvh-160px)]">
-      <PaintBlob variant={2} className="absolute -top-6 -left-20 w-52 h-52 text-cobalto/12 pointer-events-none -z-10" />
+    <div className="relative flex flex-col min-h-[72dvh]">
+      <PaintBlob variant={2} className="absolute -top-6 -left-20 w-52 h-52 text-cobalto/[0.12] pointer-events-none -z-10" />
       <header className="mb-2">
         <h1 className="font-display text-[2rem] leading-none font-semibold text-ink">Crear</h1>
         <p className="text-ink-soft mt-2 text-sm">Una canción nueva para tu cuaderno</p>

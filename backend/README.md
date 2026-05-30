@@ -1,4 +1,4 @@
-# MyMusic — Backend de análisis (opcional)
+# PentaLab — Backend de análisis (opcional)
 
 Backend local y minimalista para análisis de acordes de **mayor precisión** que el
 motor on-device. Sin infraestructura: **SQLite** + **disco** + análisis con
@@ -64,4 +64,3 @@ Copia la URL `https://....trycloudflare.com` que imprime y pégala en la app:
   estimación de tonalidad (Krumhansl) y tempo (beat tracking). Si quisieras aún más
   precisión, el `ChordDetectionService` es el punto donde enchufar un modelo
   entrenado (p. ej. madmom) en el futuro.
-```

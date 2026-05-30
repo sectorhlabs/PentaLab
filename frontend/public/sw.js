@@ -1,7 +1,7 @@
 // Service worker mínimo con runtime caching. Sin build tooling: cachea el
 // app-shell y los assets a medida que se piden, dando funcionamiento offline
 // tras la primera visita online.
-const CACHE = 'mymusic-v1'
+const CACHE = 'pentalab-v1'
 
 self.addEventListener('install', (event) => {
   event.waitUntil(

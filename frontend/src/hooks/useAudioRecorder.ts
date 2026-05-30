@@ -14,6 +14,8 @@ const MIME_CANDIDATES = [
   'audio/aac',
 ]
 
+const MIC_PREF_KEY = 'mymusic-mic-id'
+
 function pickSupportedMimeType(): string | undefined {
   if (typeof MediaRecorder === 'undefined' || !MediaRecorder.isTypeSupported) {
     return undefined
@@ -25,27 +27,6 @@ function vibrate(pattern: number | number[]): void {
   if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
     navigator.vibrate(pattern)
   }
-}
-
-const MIC_PREF_KEY = 'mymusic-mic-id'
-
-interface UseAudioRecorderReturn {
-  status: RecordingStatus
-  duration: number
-  progress: number
-  audioBlob: Blob | null
-  chords: Chord[]
-  musicKey: string | null
-  tempo: number | null
-  error: string | null
-  devices: MediaDeviceInfo[]
-  selectedDeviceId: string | null
-  setSelectedDeviceId: (id: string | null) => void
-  audioContext: AudioContext | null
-  startRecording: () => Promise<void>
-  stopRecording: () => void
-  processRecording: () => Promise<void>
-  reset: () => void
 }
 
 function describeRecordingError(err: unknown): string {
@@ -68,6 +49,25 @@ function describeRecordingError(err: unknown): string {
   return 'No se pudo iniciar la grabación. Revisa los permisos del micrófono.'
 }
 
+interface UseAudioRecorderReturn {
+  status: RecordingStatus
+  duration: number
+  progress: number
+  audioBlob: Blob | null
+  chords: Chord[]
+  musicKey: string | null
+  tempo: number | null
+  error: string | null
+  devices: MediaDeviceInfo[]
+  selectedDeviceId: string | null
+  setSelectedDeviceId: (id: string | null) => void
+  audioContext: AudioContext | null
+  startRecording: () => Promise<void>
+  stopRecording: () => void
+  processRecording: () => Promise<void>
+  reset: () => void
+}
+
 export function useAudioRecorder(): UseAudioRecorderReturn {
   const [status, setStatus] = useState<RecordingStatus>('idle')
   const [duration, setDuration] = useState(0)
@@ -82,6 +82,13 @@ export function useAudioRecorder(): UseAudioRecorderReturn {
     () => (typeof localStorage !== 'undefined' ? localStorage.getItem(MIC_PREF_KEY) : null)
   )
   const [audioContext] = useState(() => new AudioContext())
+
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null)
+  const chunksRef = useRef<Blob[]>([])
+  const timerRef = useRef<number | null>(null)
+  const startTimeRef = useRef<number>(0)
+  const streamRef = useRef<MediaStream | null>(null)
+  const workerRef = useRef<Worker | null>(null)
 
   const setSelectedDeviceId = useCallback((id: string | null) => {
     setSelectedDeviceIdState(id)
@@ -100,13 +107,6 @@ export function useAudioRecorder(): UseAudioRecorderReturn {
       /* enumeración no disponible */
     }
   }, [])
-
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null)
-  const chunksRef = useRef<Blob[]>([])
-  const timerRef = useRef<number | null>(null)
-  const startTimeRef = useRef<number>(0)
-  const streamRef = useRef<MediaStream | null>(null)
-  const workerRef = useRef<Worker | null>(null)
 
   const reset = useCallback(() => {
     if (mediaRecorderRef.current?.state === 'recording') {
