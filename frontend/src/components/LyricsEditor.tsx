@@ -47,8 +47,7 @@ export function LyricsEditor({
         onChange={(e) => setText(e.target.value)}
         placeholder={'Primera línea de la canción\nSegunda línea\n…'}
         rows={10}
-        className="w-full edge-painted bg-paper-deep text-ink px-4 py-3 leading-relaxed
-          outline-none border border-paper-line focus:border-terracota resize-none"
+        className="field leading-relaxed resize-none"
       />
       <div className="flex gap-3 mt-4">
         <button onClick={onClose} className="btn btn-secondary flex-1">Cancelar</button>

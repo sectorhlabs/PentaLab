@@ -161,7 +161,7 @@ export default function Practice() {
                 if (e.key === 'Escape') setEditingTitle(false)
               }}
               onBlur={() => { if (titleDraft.trim()) renameRecording(currentRecording.id, titleDraft.trim()); setEditingTitle(false) }}
-              className="flex-1 min-w-0 bg-paper border border-terracota/50 edge-painted-sm px-2.5 py-1 font-display text-2xl font-semibold text-ink focus:outline-none"
+              className="field flex-1 min-w-0 px-2.5 py-1 font-display text-2xl font-semibold"
             />
             <button
               onClick={() => { if (titleDraft.trim()) renameRecording(currentRecording.id, titleDraft.trim()); setEditingTitle(false) }}

@@ -63,9 +63,8 @@ export default function Login({ onUnlock }: { onUnlock: () => void }) {
             placeholder="Tu clave"
             aria-label="Clave de acceso"
             aria-invalid={error}
-            className={`edge-painted bg-paper-deep text-ink text-center font-mono tracking-wider
-              px-5 py-3.5 outline-none transition-colors border
-              ${error ? 'border-magenta' : 'border-paper-line focus:border-terracota'}`}
+            className={`field text-center font-mono tracking-wider text-lg
+              ${error ? 'border-magenta border-b-magenta' : ''}`}
           />
 
           {error && (

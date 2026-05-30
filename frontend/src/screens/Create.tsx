@@ -84,7 +84,7 @@ export default function Create() {
                 value={selectedDeviceId ?? ''}
                 onChange={(e) => setSelectedDeviceId(e.target.value || null)}
                 aria-label="Seleccionar micrófono"
-                className="mt-6 w-full max-w-[280px] bg-paper-deep border border-paper-line edge-painted-sm px-3 py-2.5 text-sm text-ink focus:outline-none focus:border-terracota/50"
+                className="field mt-6 max-w-[280px] px-3 py-2.5 text-sm"
               >
                 <option value="">Micrófono predeterminado</option>
                 {devices.map((d, i) => (
@@ -174,7 +174,7 @@ export default function Create() {
                   }
                 }}
                 placeholder="Mi canción"
-                className="w-full bg-paper-deep border border-paper-line edge-painted-sm px-3 py-2.5 font-display text-lg text-ink placeholder:text-ink-faint focus:outline-none focus:border-terracota/50"
+                className="field px-3 py-2.5 font-display text-lg"
               />
             </label>
 

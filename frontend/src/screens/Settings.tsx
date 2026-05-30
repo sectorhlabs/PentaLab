@@ -60,7 +60,7 @@ export default function SettingsPage() {
             onChange={(e) => setArtistName(e.target.value)}
             placeholder="Tu nombre"
             maxLength={40}
-            className="w-full bg-paper border border-paper-line edge-painted-sm px-3 py-2.5 font-display text-lg text-ink placeholder:text-ink-faint focus:outline-none focus:border-terracota/50"
+            className="field px-3 py-2.5 font-display text-lg"
           />
         </div>
       </section>
@@ -90,7 +90,7 @@ export default function SettingsPage() {
             placeholder="https://tu-tunel.trycloudflare.com"
             value={url}
             onChange={(e) => save(e.target.value)}
-            className="w-full bg-paper border border-paper-line edge-painted-sm px-3 py-2.5 text-sm text-ink placeholder:text-ink-faint focus:outline-none focus:border-terracota/50"
+            className="field px-3 py-2.5 text-sm"
           />
           <p className="text-xs text-ink-faint leading-relaxed">
             Pega aquí la dirección de tu servidor de acordes (por ejemplo, el túnel que te

@@ -98,7 +98,7 @@ export default function Home() {
                 placeholder="Buscar en tu cuaderno…"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                className="w-full bg-paper-deep border border-paper-line edge-painted-sm pl-10 pr-4 py-3 text-sm text-ink placeholder:text-ink-faint focus:outline-none focus:border-terracota/50"
+                className="field pl-10 pr-4 text-sm"
               />
             </div>
           )}
@@ -126,7 +126,7 @@ export default function Home() {
                             if (e.key === 'Escape') setEditingId(null)
                           }}
                           onBlur={commitEdit}
-                          className="w-full bg-paper border border-terracota/50 edge-painted-sm px-2.5 py-1.5 font-display text-lg text-ink focus:outline-none"
+                          className="field bg-paper px-2.5 py-1.5 font-display text-lg"
                         />
                       ) : (
                         <h3 className="font-display text-lg font-semibold text-ink truncate">{r.title}</h3>
