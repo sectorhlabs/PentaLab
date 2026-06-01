@@ -1,5 +1,4 @@
 import { useState, useRef, type FormEvent } from 'react'
-import { PaintBlob } from '../components/decor'
 
 export default function Login({ onUnlock }: { onUnlock: () => void }) {
   const [value, setValue] = useState('')
@@ -34,17 +33,8 @@ export default function Login({ onUnlock }: { onUnlock: () => void }) {
 
   return (
     <div className="relative min-h-[100dvh] flex flex-col items-center justify-center px-7 overflow-hidden">
-      <PaintBlob
-        variant={1}
-        className="absolute -top-16 -right-10 w-64 h-64 text-terracota/[0.12] pointer-events-none"
-      />
-      <PaintBlob
-        variant={2}
-        className="absolute -bottom-20 -left-12 w-72 h-72 text-cobalto/[0.10] pointer-events-none"
-      />
-
       <div className="relative w-full max-w-[340px] flex flex-col items-center text-center">
-        <img src="/logo-mark.png" alt="" aria-hidden="true" className="h-24 w-auto mb-5" />
+        <img src="/splash.webp" alt="" aria-hidden="true" className="w-44 h-44 object-contain mb-3 select-none pointer-events-none" />
         <h1 className="font-display text-3xl font-semibold text-ink">PentaLab</h1>
         <p className="text-ink-soft mt-1.5">Tu cuaderno privado</p>
 

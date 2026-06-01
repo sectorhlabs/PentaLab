@@ -43,7 +43,15 @@ export function LyricsEditor({
   }
 
   return (
-    <div className="fixed inset-0 z-50 bg-paper flex flex-col" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
+    <div
+      className="fixed inset-0 z-50 bg-paper flex flex-col"
+      style={{
+        paddingTop: 'env(safe-area-inset-top)',
+        backgroundImage: 'url("/paper-texture.webp")',
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+      }}
+    >
       <header className="flex items-center justify-between px-5 pt-4 pb-2 shrink-0">
         <button onClick={onClose} className="grid place-items-center w-9 h-9 rounded-full text-ink-soft hover:bg-ink/5" aria-label="Cancelar">
           <X className="w-5 h-5" />
@@ -62,7 +70,7 @@ export function LyricsEditor({
           value={text}
           onChange={(e) => setText(e.target.value)}
           placeholder={'Primera línea de la canción\nSegunda línea\n…'}
-          className="field h-full resize-none leading-relaxed"
+          className="field h-full resize-none leading-relaxed !bg-paper-deep/70"
         />
       </div>
     </div>

@@ -204,7 +204,7 @@ export default function Create() {
 
   return (
     <div className="relative flex flex-col min-h-[72dvh]">
-      <PaintBlob variant={2} className="absolute -top-6 -left-20 w-52 h-52 text-cobalto/[0.12] pointer-events-none -z-10" />
+      <img src="/splat-teal.webp" alt="" aria-hidden="true" className="absolute -top-8 -left-10 w-40 h-auto opacity-[0.16] pointer-events-none select-none -z-10" />
       <header className="mb-2">
         <h1 className="font-display text-[2rem] leading-none font-semibold text-ink">Crear</h1>
         <p className="text-ink-soft mt-2 text-sm">Una canción nueva para tu cuaderno</p>

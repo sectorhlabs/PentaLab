@@ -21,6 +21,26 @@
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.05'/%3E%3C/svg%3E");
   }
 
+  /* Capa de fondo: ilustración de cuaderno musical, fija y muy tenue, detrás de
+     todo el contenido (z-index negativo → pinta sobre el color de papel del body
+     pero bajo la app). En vertical usa el fondo móvil; en apaisado, el ancho. */
+  #app-bg {
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    background: url("/fondo.webp") center / cover no-repeat;
+    opacity: 0.55;
+    /* Se aclara hacia el centro para no competir con el texto. */
+    -webkit-mask-image: radial-gradient(ellipse 90% 75% at 50% 42%, rgba(0,0,0,0.35), rgba(0,0,0,0.85));
+    mask-image: radial-gradient(ellipse 90% 75% at 50% 42%, rgba(0,0,0,0.35), rgba(0,0,0,0.85));
+  }
+  @media (orientation: landscape) and (min-width: 768px) {
+    #app-bg {
+      background-image: url("/fondo-wide.webp");
+    }
+  }
+
   button {
     -webkit-user-select: none;
     user-select: none;

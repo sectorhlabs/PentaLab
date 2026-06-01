@@ -206,6 +206,12 @@ export default function SettingsPage() {
             <p>Funciona sin conexión. Todo se queda en tu dispositivo.</p>
           </div>
 
+          <div className="flex items-end justify-center gap-5 mt-7 opacity-90" aria-hidden="true">
+            {['guitarra', 'micro', 'metronomo', 'diapason'].map((name) => (
+              <img key={name} src={`/icon-${name}.webp`} alt="" className="h-12 w-auto select-none pointer-events-none" />
+            ))}
+          </div>
+
           <button onClick={() => setShowAbout(false)} className="btn btn-secondary w-full mt-8">
             Cerrar
           </button>

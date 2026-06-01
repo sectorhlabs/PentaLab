@@ -142,7 +142,7 @@ export default function Practice() {
   if (!currentRecording) {
     return (
       <div className="flex flex-col items-center justify-center text-center min-h-[70dvh]">
-        <PaintBlob variant={1} className="w-28 h-28 text-terracota/25 mb-5" />
+        <img src="/icon-guitarra.webp" alt="" aria-hidden="true" className="w-40 h-auto mb-5 select-none pointer-events-none" />
         <h1 className="font-display text-2xl font-semibold text-ink mb-2">Nada que tocar todavía</h1>
         <p className="text-sm text-ink-soft mb-6 max-w-[260px]">
           Elige una lámina de tu cuaderno o graba una nueva.

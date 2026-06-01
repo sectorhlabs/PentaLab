@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { Search, Pencil, Trash2, Check } from 'lucide-react'
 import { useRecordingStore } from '../stores/recordingStore'
 import { useSettingsStore } from '../stores/settingsStore'
-import { PaintBlob, Wordmark } from '../components/decor'
+import { Wordmark } from '../components/decor'
 
 function greeting(name: string): string {
   const who = name.trim() || 'artista'
@@ -57,9 +57,11 @@ export default function Home() {
 
   return (
     <div className="relative">
-      <PaintBlob
-        variant={1}
-        className="absolute -top-10 -right-16 w-56 h-56 text-magenta/15 pointer-events-none -z-10"
+      <img
+        src="/splat-mostaza.webp"
+        alt=""
+        aria-hidden="true"
+        className="absolute -top-12 -right-12 w-44 h-auto opacity-[0.18] pointer-events-none select-none -z-10"
       />
 
       <header className="mb-6">
@@ -73,13 +75,15 @@ export default function Home() {
       </header>
 
       {recordings.length === 0 ? (
-        <div className="relative flex flex-col items-center text-center py-14">
-          <div className="relative w-28 h-28 mb-6">
-            <PaintBlob variant={0} className="absolute inset-0 w-full h-full text-teal/30" />
-            <PaintBlob variant={2} className="absolute inset-2 w-[88%] h-[88%] text-terracota/30" />
-          </div>
+        <div className="relative flex flex-col items-center text-center py-10">
+          <img
+            src="/empty-state.webp"
+            alt=""
+            aria-hidden="true"
+            className="w-64 max-w-[80%] h-auto mb-5 select-none pointer-events-none"
+          />
           <h2 className="font-display text-xl font-semibold text-ink mb-2">
-            Aún no has pintado ninguna canción
+            Aún no has guardado ninguna canción
           </h2>
           <p className="text-sm text-ink-soft mb-6 max-w-[270px]">
             Graba una melodía y PentaLab le pondrá color: acordes, tono y compás.

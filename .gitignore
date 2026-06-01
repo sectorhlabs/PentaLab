@@ -21,3 +21,6 @@ frontend/test-audio/*
 .env.*
 .DS_Store
 *.log
+
+# Originales pesados de imágenes (GPT). Las versiones optimizadas viven en frontend/public.
+_assets-src/
