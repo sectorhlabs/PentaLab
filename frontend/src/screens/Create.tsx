@@ -17,6 +17,7 @@ export default function Create() {
   const savedIdRef = useRef<string | null>(null)
   const pendingRef = useRef<Parameters<typeof addRecording>[0] | null>(null)
   const [saveError, setSaveError] = useState(false)
+  const [isFirst, setIsFirst] = useState(false)
   const [titleDraft, setTitleDraft] = useState('')
 
   const {
@@ -36,6 +37,7 @@ export default function Create() {
       savedIdRef.current = null
       pendingRef.current = null
       setSaveError(false)
+      setIsFirst(false)
       setTitleDraft('')
     }
     if (status === 'complete') hasProcessedRef.current = false
@@ -69,6 +71,8 @@ export default function Create() {
       duration, chords, key: musicKey ?? undefined, tempo: tempo ?? undefined,
       createdAt: new Date().toISOString(),
     }
+    // ¿Es la primerísima? Lo miramos antes de añadirla, para celebrarlo bien.
+    setIsFirst(useRecordingStore.getState().recordings.length === 0)
     pendingRef.current = recording
     persist(recording, audioBlob)
   }, [status, audioBlob, duration, chords, musicKey, tempo, persist])
@@ -190,7 +194,7 @@ export default function Create() {
             <span className="grid place-items-center w-20 h-20 rounded-full bg-oliva/15 text-oliva mb-5">
               <Check className="w-10 h-10" strokeWidth={2.4} />
             </span>
-            <h2 className="t-h2 text-ink">¡Lámina lista!</h2>
+            <h2 className="t-h2 text-ink">{isFirst ? 'Tu primera lámina' : '¡Lámina lista!'}</h2>
             <p className="t-body tabular-nums text-ink-soft mt-1 mb-4">
               {chords.length} {chords.length === 1 ? 'acorde' : 'acordes'}
               {musicKey ? ` · ${musicKey}` : ''}{tempo ? ` · ${tempo} BPM` : ''}

@@ -42,6 +42,8 @@ export default {
       animation: {
         'ink-pulse': 'ink-pulse 1.6s cubic-bezier(0.22, 1, 0.36, 1) infinite',
         'bloom': 'bloom 0.5s cubic-bezier(0.22, 1, 0.36, 1)',
+        // Pigmento que cae en el papel: la mancha del acorde brota al cambiar.
+        'chord-bloom': 'chord-bloom 0.5s cubic-bezier(0.22, 1, 0.36, 1)',
         'fade-in': 'fade-in 0.2s ease-out',
         'sheet-up': 'sheet-up 0.32s cubic-bezier(0.22, 1, 0.36, 1)',
         'wave': 'wave 1s ease-in-out infinite',
@@ -54,6 +56,11 @@ export default {
         'bloom': {
           from: { opacity: '0', transform: 'scale(0.96)' },
           to: { opacity: '1', transform: 'scale(1)' },
+        },
+        'chord-bloom': {
+          '0%': { opacity: '0', transform: 'scale(0.72)' },
+          '55%': { opacity: '1' },
+          '100%': { transform: 'scale(1)' },
         },
         'fade-in': {
           from: { opacity: '0' },

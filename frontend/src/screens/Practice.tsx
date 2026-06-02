@@ -249,8 +249,9 @@ export default function Practice() {
           {/* Acorde actual: pigmento sobre el lienzo. */}
           <div className="relative grid place-items-center py-6 mb-4">
             <PaintBlob
-              variant={0}
-              className={`absolute w-48 h-48 transition-colors duration-300 ${currentChord ? 'text-magenta/20' : 'text-paper-line/60'}`}
+              key={currentChord ? `${currentChordIndex}-${currentChord.root}${currentChord.quality}` : 'idle'}
+              variant={(currentChord ? Math.abs(currentChordIndex) % 3 : 0) as 0 | 1 | 2}
+              className={`absolute w-48 h-48 ${currentChord ? 'text-magenta/20 animate-chord-bloom' : 'text-paper-line/60'}`}
             />
             <div className="relative text-center">
               <span className="t-display text-ink">
