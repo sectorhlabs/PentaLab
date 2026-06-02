@@ -66,7 +66,8 @@ export function LyricsSync({
     const el = activeRef.current
     const cont = containerRef.current
     if (el && cont) {
-      cont.scrollTo({ top: el.offsetTop - cont.clientHeight / 2 + el.clientHeight / 2, behavior: 'smooth' })
+      const calm = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+      cont.scrollTo({ top: el.offsetTop - cont.clientHeight / 2 + el.clientHeight / 2, behavior: calm ? 'auto' : 'smooth' })
     }
   }, [cursor])
 
@@ -135,11 +136,11 @@ export function LyricsSync({
         <button onClick={onClose} className="grid place-items-center w-9 h-9 rounded-full text-ink-soft hover:bg-ink/5" aria-label="Cancelar">
           <X className="w-5 h-5" />
         </button>
-        <span className="font-display font-semibold text-ink">Sincronizar letra</span>
-        <button onClick={save} className="text-terracota font-medium px-2" aria-label="Guardar">Guardar</button>
+        <span className="t-title text-ink">Sincronizar letra</span>
+        <button onClick={save} className="t-label text-terracota px-2" aria-label="Guardar">Guardar</button>
       </header>
 
-      <p className="text-center text-xs text-ink-faint px-6 mb-2">
+      <p className="text-center t-meta text-ink-faint px-6 mb-2">
         Dale al play y toca <strong className="text-ink-soft">Marcar</strong> justo cuando empiece cada línea · {markedCount}/{totalMarkable}
       </p>
 
@@ -155,7 +156,7 @@ export function LyricsSync({
               className={`flex items-center gap-2 text-lg leading-snug transition-colors
                 ${isCurrent ? 'text-ink font-display font-semibold text-xl' : isMarked ? 'text-ink-soft' : 'text-ink-faint'}`}
             >
-              {isMarked && <span className="font-mono text-[10px] text-oliva shrink-0 w-9">{fmt(times[i] as number)}</span>}
+              {isMarked && <span className="t-data text-caption text-oliva shrink-0 w-9">{fmt(times[i] as number)}</span>}
               <span className="flex-1">{l.text}</span>
             </p>
           )
@@ -164,7 +165,7 @@ export function LyricsSync({
       </div>
 
       <div className="px-5 pb-[calc(20px+env(safe-area-inset-bottom))] pt-3 border-t border-paper-line bg-paper-deep">
-        <div className="flex items-center justify-between font-mono text-xs text-ink-faint mb-3">
+        <div className="flex items-center justify-between t-data text-caption text-ink-faint mb-3">
           <span>{fmt(currentTime)}</span>
           <button onClick={restart} className="inline-flex items-center gap-1.5 text-ink-soft" aria-label="Reiniciar">
             <RotateCcw className="w-3.5 h-3.5" /> Reiniciar

@@ -3,18 +3,37 @@
 @tailwind utilities;
 
 @layer base {
+  :root {
+    /* Familias: fuente única de verdad, también referenciada por tailwind.config. */
+    --font-display: 'Fraunces', Georgia, serif;
+    --font-sans: 'Hanken Grotesk', -apple-system, BlinkMacSystemFont, sans-serif;
+    --font-mono: 'Space Mono', ui-monospace, monospace;
+
+    /* Escala tipográfica fija (rem). UI densa → predecible, sin clamp. */
+    --text-caption: 0.8125rem; /* 13px — micro-etiquetas, timestamps */
+    --text-meta: 0.875rem;     /* 14px — texto secundario, ayuda, pastillas */
+    --text-body: 1rem;         /* 16px — prosa, párrafos, listas */
+    --text-title: 1.125rem;    /* 18px — títulos de lámina/campo */
+    --text-h2: 1.375rem;       /* 22px — sección, hoja, éxito */
+    --text-h1: 1.875rem;       /* 30px — título de pantalla */
+    --text-display: 5rem;      /* 80px — acorde, dato heroico */
+  }
+
   * {
     -webkit-tap-highlight-color: transparent;
   }
 
   html {
-    font-family: 'Hanken Grotesk', -apple-system, BlinkMacSystemFont, sans-serif;
+    font-family: var(--font-sans);
+    font-optical-sizing: auto;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
 
   body {
     @apply bg-paper text-ink;
+    font-size: var(--text-body);
+    line-height: 1.6;
     overscroll-behavior: none;
     touch-action: manipulation;
     /* Grano de papel: ruido SVG sutil sobre el lienzo cálido. */
@@ -62,12 +81,88 @@
   }
 
   :focus-visible {
-    outline: 2px solid oklch(0.62 0.15 45);
+    outline: 2px solid oklch(0.54 0.15 45);
     outline-offset: 2px;
   }
 }
 
 @layer components {
+  /* ── Roles tipográficos ───────────────────────────────────────────────
+     Cada clase fija familia + tamaño + peso + interlineado + tracking para
+     un rol concreto. Se combinan dimensiones (escala + peso + color + aire),
+     nunca tamaño solo. Fraunces lleva el peso alto y el optical sizing; el
+     contraste de jerarquía sale de aquí, no de utilidades sueltas. */
+
+  /* Dato heroico: el glifo del acorde. */
+  .t-display {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: var(--text-display);
+    line-height: 0.95;
+    letter-spacing: -0.02em;
+    font-optical-sizing: auto;
+  }
+  /* Título de pantalla: una sola talla en toda la app. */
+  .t-h1 {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: var(--text-h1);
+    line-height: 1.08;
+    letter-spacing: -0.015em;
+    font-optical-sizing: auto;
+  }
+  /* Sección, hoja deslizante, estado de éxito. */
+  .t-h2 {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: var(--text-h2);
+    line-height: 1.2;
+    letter-spacing: -0.01em;
+  }
+  /* Título de lámina, campo o ítem de lista. */
+  .t-title {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: var(--text-title);
+    line-height: 1.3;
+    letter-spacing: -0.005em;
+  }
+  /* Prosa: párrafos y descripciones largas. Aire para leer. */
+  .t-body {
+    font-size: var(--text-body);
+    line-height: 1.6;
+  }
+  /* Texto secundario y de ayuda. */
+  .t-meta {
+    font-size: var(--text-meta);
+    line-height: 1.5;
+  }
+  /* Etiqueta de UI: pestañas, botones inline, labels. Peso medio, no semibold. */
+  .t-label {
+    font-weight: 500;
+    font-size: var(--text-meta);
+    line-height: 1.4;
+  }
+  /* Micro-etiqueta: pie de dato, marca, firma. */
+  .t-caption {
+    font-size: var(--text-caption);
+    line-height: 1.4;
+  }
+  /* Cejilla de sección: versalitas espaciadas. */
+  .t-eyebrow {
+    font-weight: 600;
+    font-size: var(--text-caption);
+    line-height: 1;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+  }
+  /* Dato numérico: mono con cifras de ancho fijo para que alineen. */
+  .t-data {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: 'tnum';
+  }
+
   /* Botones: una sola gramática en toda la app. */
   .btn {
     @apply inline-flex items-center justify-center gap-2 font-medium transition-all duration-200;
@@ -110,12 +205,12 @@
     border-bottom: 2.5px solid oklch(0.62 0.015 65 / 0.5);
   }
   .field::placeholder {
-    color: oklch(0.62 0.015 65 / 0.9);
+    color: oklch(0.51 0.015 65 / 0.9);
   }
   .field:focus {
-    border-color: oklch(0.62 0.15 45 / 0.5);
-    border-bottom-color: oklch(0.62 0.15 45);
-    box-shadow: 0 3px 14px oklch(0.62 0.15 45 / 0.10);
+    border-color: oklch(0.54 0.15 45 / 0.5);
+    border-bottom-color: oklch(0.54 0.15 45);
+    box-shadow: 0 3px 14px oklch(0.54 0.15 45 / 0.10);
   }
 
   /* Tarjeta-lámina: papel elevado con borde irregular pintado. */
@@ -145,5 +240,18 @@
   }
   .edge-painted-sm {
     border-radius: 12px 10px 13px 11px;
+  }
+}
+
+/* Respeta a quien pide menos movimiento: latidos, ondas y deslizamientos se
+   calman; el estado (cronómetro, punto de grabación) sigue comunicándose. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }

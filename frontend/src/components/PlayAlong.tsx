@@ -68,7 +68,8 @@ export const PlayAlong = memo(function PlayAlong({
     const el = activeRef.current
     const cont = containerRef.current
     if (el && cont) {
-      cont.scrollTo({ top: el.offsetTop - cont.clientHeight / 2 + el.clientHeight / 2, behavior: 'smooth' })
+      const calm = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+      cont.scrollTo({ top: el.offsetTop - cont.clientHeight / 2 + el.clientHeight / 2, behavior: calm ? 'auto' : 'smooth' })
     }
   }, [activeIndex])
 
@@ -94,7 +95,7 @@ export const PlayAlong = memo(function PlayAlong({
                     <button
                       key={k}
                       onClick={(e) => { e.stopPropagation(); onSeek(c.start) }}
-                      className={`pigment text-xs px-2 py-0.5 font-semibold transition-colors
+                      className={`pigment text-caption px-2 py-0.5 font-semibold transition-colors
                         ${on ? 'bg-magenta text-paper' : 'bg-magenta/[0.12] text-magenta'}`}
                     >
                       {chordLabel(c.root, c.quality)}

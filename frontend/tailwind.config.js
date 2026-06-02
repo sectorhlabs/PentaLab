@@ -10,19 +10,30 @@ export default {
         'paper-line': 'oklch(0.86 0.022 74 / <alpha-value>)',
         ink: 'oklch(0.27 0.015 60 / <alpha-value>)',
         'ink-soft': 'oklch(0.45 0.018 60 / <alpha-value>)',
-        'ink-faint': 'oklch(0.62 0.015 65 / <alpha-value>)',
+        'ink-faint': 'oklch(0.51 0.015 65 / <alpha-value>)',
         // Pigmentos.
-        terracota: 'oklch(0.62 0.15 45 / <alpha-value>)',
+        terracota: 'oklch(0.54 0.15 45 / <alpha-value>)',
         magenta: 'oklch(0.58 0.18 5 / <alpha-value>)',
-        teal: 'oklch(0.58 0.09 195 / <alpha-value>)',
+        teal: 'oklch(0.50 0.09 195 / <alpha-value>)',
         cobalto: 'oklch(0.45 0.15 264 / <alpha-value>)',
         mostaza: 'oklch(0.78 0.13 80 / <alpha-value>)',
-        oliva: 'oklch(0.62 0.10 125 / <alpha-value>)',
+        oliva: 'oklch(0.52 0.10 125 / <alpha-value>)',
       },
       fontFamily: {
-        display: ['Fraunces', 'Georgia', 'serif'],
-        sans: ['"Hanken Grotesk"', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
-        mono: ['"Space Mono"', 'ui-monospace', 'monospace'],
+        // Stacks definidos como CSS vars en index.css (:root); aquí solo se referencian.
+        display: ['var(--font-display)'],
+        sans: ['var(--font-sans)'],
+        mono: ['var(--font-mono)'],
+      },
+      fontSize: {
+        // Escala semántica (espejo de las vars --text-*), para usar como text-h1, etc.
+        caption: ['var(--text-caption)', { lineHeight: '1.4' }],
+        meta: ['var(--text-meta)', { lineHeight: '1.5' }],
+        body: ['var(--text-body)', { lineHeight: '1.6' }],
+        title: ['var(--text-title)', { lineHeight: '1.3' }],
+        h2: ['var(--text-h2)', { lineHeight: '1.2' }],
+        h1: ['var(--text-h1)', { lineHeight: '1.08' }],
+        display: ['var(--text-display)', { lineHeight: '0.95' }],
       },
       boxShadow: {
         paper: '0 2px 8px oklch(0.27 0.04 60 / 0.08), 0 8px 24px oklch(0.27 0.04 60 / 0.06)',

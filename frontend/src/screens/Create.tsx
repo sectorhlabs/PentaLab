@@ -77,14 +77,14 @@ export default function Create() {
                 <Mic className="w-12 h-12" strokeWidth={1.6} />
               </span>
             </button>
-            <p className="text-ink-soft mt-7">Toca para empezar a pintar sonido</p>
+            <p className="t-body text-ink-soft mt-7">Toca para empezar a pintar sonido</p>
 
             {devices.length > 1 && (
               <select
                 value={selectedDeviceId ?? ''}
                 onChange={(e) => setSelectedDeviceId(e.target.value || null)}
                 aria-label="Seleccionar micrófono"
-                className="field mt-6 max-w-[280px] px-3 py-2.5 text-sm"
+                className="field mt-6 max-w-[280px] px-3 py-2.5 t-body"
               >
                 <option value="">Micrófono predeterminado</option>
                 {devices.map((d, i) => (
@@ -92,7 +92,7 @@ export default function Create() {
                 ))}
               </select>
             )}
-            {error && <p className="text-magenta text-sm text-center max-w-[280px] mt-4">{error}</p>}
+            {error && <p className="t-meta text-magenta text-center max-w-[280px] mt-4">{error}</p>}
           </div>
         )
 
@@ -110,7 +110,7 @@ export default function Create() {
             </div>
             <div className="flex items-center gap-2.5 mb-9">
               <span className="w-3 h-3 rounded-full bg-magenta animate-ink-pulse" />
-              <span className="font-mono text-3xl text-ink tabular-nums">{fmt(duration)}</span>
+              <span className="t-data text-3xl text-ink">{fmt(duration)}</span>
             </div>
             <button
               onClick={handleRecordClick}
@@ -126,8 +126,8 @@ export default function Create() {
         return (
           <div className="flex flex-col items-center">
             <PaintBlob variant={0} className="w-24 h-24 text-mostaza/40 animate-pulse" />
-            <p className="font-display text-xl text-ink mt-5">Mezclando la paleta…</p>
-            <p className="text-sm text-ink-faint mt-1">Preparando el audio</p>
+            <p className="t-h2 text-ink mt-5">Mezclando la paleta…</p>
+            <p className="t-meta text-ink-faint mt-1">Preparando el audio</p>
           </div>
         )
 
@@ -138,15 +138,15 @@ export default function Create() {
               <svg viewBox="0 0 100 100" className="absolute inset-0 -rotate-90">
                 <circle cx="50" cy="50" r="45" fill="none" stroke="oklch(0.86 0.022 74)" strokeWidth="6" />
                 <circle
-                  cx="50" cy="50" r="45" fill="none" stroke="oklch(0.62 0.15 45)" strokeWidth="6"
+                  cx="50" cy="50" r="45" fill="none" stroke="oklch(0.54 0.15 45)" strokeWidth="6"
                   strokeLinecap="round" strokeDasharray={`${(progress * circ).toFixed(1)} ${circ.toFixed(1)}`}
                   style={{ transition: 'stroke-dasharray 0.3s ease-out' }}
                 />
               </svg>
-              <span className="font-mono text-2xl text-ink tabular-nums">{Math.round(progress * 100)}%</span>
+              <span className="t-data text-2xl text-ink">{Math.round(progress * 100)}%</span>
             </div>
-            <p className="font-display text-xl text-ink mt-6">Buscando los acordes…</p>
-            <p className="text-sm text-ink-faint mt-1">Cada nota a su sitio</p>
+            <p className="t-h2 text-ink mt-6">Buscando los acordes…</p>
+            <p className="t-meta text-ink-faint mt-1">Cada nota a su sitio</p>
           </div>
         )
 
@@ -156,14 +156,14 @@ export default function Create() {
             <span className="grid place-items-center w-20 h-20 rounded-full bg-oliva/15 text-oliva mb-5">
               <Check className="w-10 h-10" strokeWidth={2.4} />
             </span>
-            <h2 className="font-display text-2xl font-semibold text-ink">¡Lámina lista!</h2>
-            <p className="text-ink-soft mt-1 mb-4">
+            <h2 className="t-h2 text-ink">¡Lámina lista!</h2>
+            <p className="t-body tabular-nums text-ink-soft mt-1 mb-4">
               {chords.length} {chords.length === 1 ? 'acorde' : 'acordes'}
               {musicKey ? ` · ${musicKey}` : ''}{tempo ? ` · ${tempo} BPM` : ''}
             </p>
 
             <label className="w-full max-w-[300px] text-left">
-              <span className="block text-xs text-ink-faint mb-1.5 px-1">Ponle nombre</span>
+              <span className="block t-caption text-ink-faint mb-1.5 px-1">Ponle nombre</span>
               <input
                 type="text"
                 value={titleDraft}
@@ -174,18 +174,18 @@ export default function Create() {
                   }
                 }}
                 placeholder="Mi canción"
-                className="field px-3 py-2.5 font-display text-lg"
+                className="field px-3 py-2.5 t-title"
               />
             </label>
 
             <div className="flex flex-wrap justify-center gap-2 my-5 max-w-[300px]">
               {chords.slice(0, 6).map((c, i) => (
-                <span key={i} className="pigment px-3 py-1.5 text-sm bg-magenta/[0.12] text-magenta">
+                <span key={i} className="pigment px-3 py-1.5 text-meta bg-magenta/[0.12] text-magenta">
                   {c.root}{c.quality === 'minor' ? 'm' : ''}
                 </span>
               ))}
               {chords.length > 6 && (
-                <span className="pigment px-3 py-1.5 text-sm bg-ink/[0.08] text-ink-soft">+{chords.length - 6}</span>
+                <span className="pigment px-3 py-1.5 text-meta bg-ink/[0.08] text-ink-soft">+{chords.length - 6}</span>
               )}
             </div>
 
@@ -206,8 +206,8 @@ export default function Create() {
     <div className="relative flex flex-col min-h-[72dvh]">
       <img src="/splat-teal.webp" alt="" aria-hidden="true" className="absolute -top-8 -left-10 w-40 h-auto opacity-[0.16] pointer-events-none select-none -z-10" />
       <header className="mb-2">
-        <h1 className="font-display text-[2rem] leading-none font-semibold text-ink">Crear</h1>
-        <p className="text-ink-soft mt-2 text-sm">Una canción nueva para tu cuaderno</p>
+        <h1 className="t-h1 text-ink">Crear</h1>
+        <p className="t-meta text-ink-soft mt-2">Una canción nueva para tu cuaderno</p>
       </header>
 
       <div className="flex-1 grid place-items-center py-6">{content()}</div>

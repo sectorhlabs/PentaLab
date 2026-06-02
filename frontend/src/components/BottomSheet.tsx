@@ -74,7 +74,7 @@ export function BottomSheet({ open, onClose, title, children }: BottomSheetProps
             onPointerCancel={onPointerEnd}
           >
             <div className="mx-auto w-10 h-1.5 rounded-full bg-paper-line" />
-            {title && <h3 className="font-display text-xl font-semibold text-ink mt-4">{title}</h3>}
+            {title && <h3 className="t-h2 text-ink mt-4">{title}</h3>}
           </div>
           <div className="px-6" style={{ paddingBottom: 'calc(1.5rem + env(safe-area-inset-bottom))' }}>
             {children}

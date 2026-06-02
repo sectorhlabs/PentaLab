@@ -26,11 +26,11 @@ const ChordRow = memo(function ChordRow({
       className={`w-full flex items-center gap-3 py-2.5 px-3 edge-painted-sm text-left transition-colors
         ${active ? 'bg-magenta/[0.12]' : 'hover:bg-ink/5'}`}
     >
-      <span className="font-mono text-xs text-ink-faint w-9">{fmtTime(chord.start)}</span>
-      <span className={`font-display font-semibold w-12 ${active ? 'text-magenta' : 'text-ink'}`}>
+      <span className="t-data text-caption text-ink-faint w-9">{fmtTime(chord.start)}</span>
+      <span className={`t-title w-12 ${active ? 'text-magenta' : 'text-ink'}`}>
         {chordLabel(chord.root, chord.quality)}
       </span>
-      <span className="ml-auto font-mono text-[11px] text-ink-faint">{Math.round(chord.confidence * 100)}%</span>
+      <span className="ml-auto t-data text-caption text-ink-faint">{Math.round(chord.confidence * 100)}%</span>
     </button>
   )
 })
@@ -143,12 +143,12 @@ export default function Practice() {
     return (
       <div className="flex flex-col items-center justify-center text-center min-h-[70dvh]">
         <img src="/icon-guitarra.webp" alt="" aria-hidden="true" className="w-40 h-auto mb-5 select-none pointer-events-none" />
-        <h1 className="font-display text-2xl font-semibold text-ink mb-2">Nada que tocar todavía</h1>
-        <p className="text-sm text-ink-soft mb-6 max-w-[260px]">
+        <h1 className="t-h1 text-ink mb-2">Nada que tocar todavía</h1>
+        <p className="t-body text-ink-soft mb-6 max-w-[280px]">
           Elige una lámina de tu cuaderno o graba una nueva.
         </p>
         <div className="flex gap-3">
-          <button onClick={() => navigate('/library')} className="btn btn-secondary">Cuaderno</button>
+          <button onClick={() => navigate('/')} className="btn btn-secondary">Cuaderno</button>
           <button onClick={() => navigate('/create')} className="btn btn-primary">Grabar</button>
         </div>
       </div>
@@ -179,7 +179,7 @@ export default function Practice() {
                 if (e.key === 'Escape') setEditingTitle(false)
               }}
               onBlur={() => { if (titleDraft.trim()) renameRecording(currentRecording.id, titleDraft.trim()); setEditingTitle(false) }}
-              className="field flex-1 min-w-0 px-2.5 py-1 font-display text-2xl font-semibold"
+              className="field flex-1 min-w-0 px-2.5 py-1 t-h1"
             />
             <button
               onClick={() => { if (titleDraft.trim()) renameRecording(currentRecording.id, titleDraft.trim()); setEditingTitle(false) }}
@@ -191,7 +191,7 @@ export default function Practice() {
           </div>
         ) : (
           <div className="flex items-center gap-2">
-            <h1 className="font-display text-2xl font-semibold text-ink truncate">{currentRecording.title}</h1>
+            <h1 className="t-h1 text-ink truncate">{currentRecording.title}</h1>
             <button
               onClick={() => { setTitleDraft(currentRecording.title); setEditingTitle(true) }}
               className="grid place-items-center w-8 h-8 rounded-full text-ink-faint hover:text-terracota hover:bg-terracota/10 shrink-0"
@@ -211,22 +211,22 @@ export default function Practice() {
         {(currentRecording.key || currentRecording.tempo) && (
           <div className="flex gap-2 mt-2">
             {currentRecording.key && (
-              <span className="pigment text-xs px-2.5 py-1 bg-magenta/[0.12] text-magenta">Tono {currentRecording.key}</span>
+              <span className="pigment text-caption px-2.5 py-1 bg-magenta/[0.12] text-magenta">Tono {currentRecording.key}</span>
             )}
             {currentRecording.tempo && (
-              <span className="pigment text-xs px-2.5 py-1 bg-cobalto/[0.12] text-cobalto">{currentRecording.tempo} BPM</span>
+              <span className="pigment text-caption tabular-nums px-2.5 py-1 bg-cobalto/[0.12] text-cobalto">{currentRecording.tempo} BPM</span>
             )}
           </div>
         )}
       </header>
 
       {/* Pestañas: acordes sueltos o tocar con letra. */}
-      <div className="flex gap-1 p-1 bg-paper-deep rounded-full mb-4 text-sm border border-paper-line">
+      <div className="flex gap-1 p-1 bg-paper-deep rounded-full mb-4 border border-paper-line">
         {(['chords', 'lyrics'] as const).map((t) => (
           <button
             key={t}
             onClick={() => setView(t)}
-            className={`flex-1 py-1.5 rounded-full transition-colors font-medium
+            className={`flex-1 py-1.5 rounded-full transition-colors t-label
               ${view === t ? 'bg-terracota text-paper' : 'text-ink-soft'}`}
           >
             {t === 'chords' ? 'Acordes' : 'Letra'}
@@ -243,10 +243,10 @@ export default function Practice() {
               className={`absolute w-48 h-48 transition-colors duration-300 ${currentChord ? 'text-magenta/20' : 'text-paper-line/60'}`}
             />
             <div className="relative text-center">
-              <span className="font-display text-[5rem] leading-none font-semibold text-ink">
+              <span className="t-display text-ink">
                 {currentChord ? chordLabel(currentChord.root, currentChord.quality) : '·'}
               </span>
-              <span className="block text-sm text-ink-faint mt-1">
+              <span className="block t-meta text-ink-faint mt-1">
                 {currentChord ? currentChord.quality : 'esperando'}
               </span>
             </div>
@@ -255,7 +255,7 @@ export default function Practice() {
           {/* Línea de acordes. */}
           <div className="-mx-1 px-1 mb-4">
             {chords.length === 0 ? (
-              <p className="text-center text-sm text-ink-faint py-6">Esta lámina no tiene acordes.</p>
+              <p className="text-center t-meta text-ink-faint py-6">Esta lámina no tiene acordes.</p>
             ) : (
               <div className="space-y-1">
                 {chords.map((c, i) => (
@@ -269,7 +269,7 @@ export default function Practice() {
         <div className="mb-4">
           {lyrics.length === 0 ? (
             <div className="flex flex-col items-center text-center py-10">
-              <p className="text-sm text-ink-soft mb-4 max-w-[260px]">
+              <p className="t-body text-ink-soft mb-4 max-w-[280px]">
                 Añade la letra para tocar siguiéndola, con los acordes encima en su sitio.
               </p>
               <button onClick={() => setShowEditor(true)} className="btn btn-primary gap-2">
@@ -279,18 +279,18 @@ export default function Practice() {
           ) : (
             <>
               <div className="flex items-center justify-between mb-2 px-1">
-                <span className="text-xs text-ink-faint">{lyricsSynced ? 'Sincronizada' : 'Sin sincronizar'}</span>
+                <span className="t-caption text-ink-faint">{lyricsSynced ? 'Sincronizada' : 'Sin sincronizar'}</span>
                 <div className="flex gap-1">
-                  <button onClick={() => setShowEditor(true)} className="inline-flex items-center gap-1 text-xs text-ink-soft px-2 py-1 rounded-full hover:bg-ink/5">
+                  <button onClick={() => setShowEditor(true)} className="inline-flex items-center gap-1 t-label text-ink-soft px-2 py-1 rounded-full hover:bg-ink/5">
                     <Pencil className="w-3.5 h-3.5" /> Editar
                   </button>
-                  <button onClick={() => { audioRef.current?.pause(); setShowSync(true) }} className="inline-flex items-center gap-1 text-xs text-terracota px-2 py-1 rounded-full hover:bg-terracota/10">
+                  <button onClick={() => { audioRef.current?.pause(); setShowSync(true) }} className="inline-flex items-center gap-1 t-label text-terracota px-2 py-1 rounded-full hover:bg-terracota/10">
                     <Timer className="w-3.5 h-3.5" /> Sincronizar
                   </button>
                 </div>
               </div>
               {!lyricsSynced && chords.length > 0 && (
-                <p className="text-xs text-ink-faint bg-mostaza/[0.12] edge-painted-sm px-3 py-2 mb-2">
+                <p className="t-meta text-ink-faint bg-mostaza/[0.12] edge-painted-sm px-3 py-2 mb-2">
                   Sincroniza la letra para que los acordes aparezcan encima en su sitio.
                 </p>
               )}
@@ -304,7 +304,7 @@ export default function Practice() {
       <div ref={progressRef} onClick={onProgressClick} className="h-2.5 bg-paper-line rounded-full cursor-pointer mb-2 touch-target">
         <div className="h-full bg-terracota rounded-full" style={{ width: `${duration ? (currentTime / duration) * 100 : 0}%` }} />
       </div>
-      <div className="flex justify-between font-mono text-xs text-ink-faint mb-5">
+      <div className="flex justify-between t-data text-caption text-ink-faint mb-5">
         <span>{fmt(currentTime)}</span>
         <span>{fmt(duration)}</span>
       </div>
@@ -341,7 +341,7 @@ export default function Practice() {
           className="grid place-items-center w-10 h-10 rounded-full bg-paper-deep border border-paper-line touch-target"
           aria-label="Velocidad"
         >
-          <span className="font-mono text-xs text-ink-soft">{playbackRate}x</span>
+          <span className="t-data text-caption text-ink-soft">{playbackRate}x</span>
         </button>
       </div>
 
@@ -351,6 +351,7 @@ export default function Practice() {
         <input
           type="range" min="0" max="100" value={Math.round(volume * 100)}
           onChange={(e) => setVolume(Number(e.target.value) / 100)}
+          aria-label="Volumen"
           className="flex-1 accent-terracota"
         />
       </div>

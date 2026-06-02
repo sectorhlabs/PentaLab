@@ -56,11 +56,11 @@ export function LyricsEditor({
         <button onClick={onClose} className="grid place-items-center w-9 h-9 rounded-full text-ink-soft hover:bg-ink/5" aria-label="Cancelar">
           <X className="w-5 h-5" />
         </button>
-        <span className="font-display font-semibold text-ink">Letra</span>
-        <button onClick={save} className="text-terracota font-medium px-2" aria-label="Guardar">Guardar</button>
+        <span className="t-title text-ink">Letra</span>
+        <button onClick={save} className="t-label text-terracota px-2" aria-label="Guardar">Guardar</button>
       </header>
 
-      <p className="text-xs text-ink-faint px-6 mb-2 shrink-0">
+      <p className="t-meta text-ink-faint px-6 mb-2 shrink-0">
         Una línea por renglón. Luego podrás sincronizarla con el audio.
       </p>
 

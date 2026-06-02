@@ -26,7 +26,7 @@ export default function BottomNav() {
                   ${isActive ? 'text-terracota' : accent ? 'text-terracota/70' : 'text-ink-faint'}`}
                 style={{
                   borderRadius: '16px 13px 15px 14px',
-                  backgroundColor: isActive ? 'oklch(0.62 0.15 45 / 0.14)' : 'transparent',
+                  backgroundColor: isActive ? 'oklch(0.54 0.15 45 / 0.14)' : 'transparent',
                 }}
               >
                 <Icon className="w-[22px] h-[22px] shrink-0" strokeWidth={isActive ? 2.3 : 1.9} />

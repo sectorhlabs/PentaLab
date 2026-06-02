@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Search, Pencil, Trash2, Check } from 'lucide-react'
+import { Search, Pencil, Trash2, Check, X } from 'lucide-react'
 import { useRecordingStore } from '../stores/recordingStore'
 import { useSettingsStore } from '../stores/settingsStore'
 import { Wordmark } from '../components/decor'
@@ -24,6 +24,7 @@ export default function Home() {
 
   const [query, setQuery] = useState('')
   const [editingId, setEditingId] = useState<string | null>(null)
+  const [confirmingId, setConfirmingId] = useState<string | null>(null)
   const [draft, setDraft] = useState('')
 
   const filtered = recordings.filter((r) => r.title.toLowerCase().includes(query.toLowerCase()))
@@ -34,7 +35,7 @@ export default function Home() {
     new Date(d).toLocaleDateString('es-ES', { day: 'numeric', month: 'long' })
 
   const open = (id: string) => {
-    if (editingId) return
+    if (editingId || confirmingId) return
     const r = recordings.find((x) => x.id === id)
     if (!r) return
     setCurrentRecording(r)
@@ -42,6 +43,7 @@ export default function Home() {
   }
 
   const startEdit = (id: string, title: string) => {
+    setConfirmingId(null)
     setEditingId(id)
     setDraft(title)
   }
@@ -49,8 +51,13 @@ export default function Home() {
     if (editingId && draft.trim()) renameRecording(editingId, draft.trim())
     setEditingId(null)
   }
-  const remove = (id: string) => {
-    if (confirm('¿Borrar esta lámina? No se puede deshacer.')) deleteRecording(id)
+  const askRemove = (id: string) => {
+    setEditingId(null)
+    setConfirmingId(id)
+  }
+  const confirmRemove = (id: string) => {
+    deleteRecording(id)
+    setConfirmingId(null)
   }
 
   const palette = ['bg-terracota', 'bg-teal', 'bg-cobalto', 'bg-mostaza', 'bg-oliva']
@@ -66,8 +73,8 @@ export default function Home() {
 
       <header className="mb-6">
         <Wordmark className="text-sm text-ink-soft mb-5" />
-        <h1 className="font-display text-[2rem] leading-[1.1] font-semibold text-ink">{greeting(artistName)}</h1>
-        <p className="text-ink-soft mt-2">
+        <h1 className="t-h1 text-ink">{greeting(artistName)}</h1>
+        <p className="t-body text-ink-soft mt-2">
           {recordings.length === 0
             ? 'Tu cuaderno está en blanco, listo para sonar.'
             : `${recordings.length} ${recordings.length === 1 ? 'lámina' : 'láminas'} en tu cuaderno.`}
@@ -82,10 +89,10 @@ export default function Home() {
             aria-hidden="true"
             className="w-64 max-w-[80%] h-auto mb-5 select-none pointer-events-none"
           />
-          <h2 className="font-display text-xl font-semibold text-ink mb-2">
+          <h2 className="t-h2 text-ink mb-2">
             Aún no has guardado ninguna canción
           </h2>
-          <p className="text-sm text-ink-soft mb-6 max-w-[270px]">
+          <p className="t-body text-ink-soft mb-6 max-w-[300px]">
             Graba una melodía y PentaLab le pondrá color: acordes, tono y compás.
           </p>
           <button onClick={() => navigate('/create')} className="btn btn-primary">
@@ -102,7 +109,7 @@ export default function Home() {
                 placeholder="Buscar en tu cuaderno…"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                className="field pl-10 pr-4 text-sm"
+                className="field pl-10 pr-4 t-body"
               />
             </div>
           )}
@@ -130,18 +137,36 @@ export default function Home() {
                             if (e.key === 'Escape') setEditingId(null)
                           }}
                           onBlur={commitEdit}
-                          className="field bg-paper px-2.5 py-1.5 font-display text-lg"
+                          className="field bg-paper px-2.5 py-1.5 t-title"
                         />
                       ) : (
-                        <h3 className="font-display text-lg font-semibold text-ink truncate">{r.title}</h3>
+                        <h3 className="t-title text-ink truncate">{r.title}</h3>
                       )}
-                      <p className="font-mono text-xs text-ink-faint mt-0.5">
+                      <p className="t-data text-caption text-ink-faint mt-0.5">
                         {formatDate(r.createdAt)} · {formatDuration(r.duration)}
                       </p>
                     </div>
 
                     <div className="flex items-center gap-1 shrink-0">
-                      {editingId === r.id ? (
+                      {confirmingId === r.id ? (
+                        <>
+                          <span className="t-caption text-ink-soft mr-1">¿Borrar?</span>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); setConfirmingId(null) }}
+                            className="grid place-items-center w-9 h-9 rounded-full text-ink-soft hover:bg-ink/5 touch-target"
+                            aria-label="Cancelar borrado"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); confirmRemove(r.id) }}
+                            className="grid place-items-center w-9 h-9 rounded-full text-magenta bg-magenta/10 hover:bg-magenta/[0.18] touch-target"
+                            aria-label="Borrar lámina definitivamente"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </>
+                      ) : editingId === r.id ? (
                         <button
                           onClick={(e) => { e.stopPropagation(); commitEdit() }}
                           className="grid place-items-center w-9 h-9 rounded-full text-oliva hover:bg-oliva/10 touch-target"
@@ -150,21 +175,23 @@ export default function Home() {
                           <Check className="w-4 h-4" />
                         </button>
                       ) : (
-                        <button
-                          onClick={(e) => { e.stopPropagation(); startEdit(r.id, r.title) }}
-                          className="grid place-items-center w-9 h-9 rounded-full text-ink-faint hover:text-terracota hover:bg-terracota/10 touch-target"
-                          aria-label="Renombrar"
-                        >
-                          <Pencil className="w-4 h-4" />
-                        </button>
+                        <>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); startEdit(r.id, r.title) }}
+                            className="grid place-items-center w-9 h-9 rounded-full text-ink-faint hover:text-terracota hover:bg-terracota/10 touch-target"
+                            aria-label="Renombrar"
+                          >
+                            <Pencil className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); askRemove(r.id) }}
+                            className="grid place-items-center w-9 h-9 rounded-full text-ink-faint hover:text-magenta hover:bg-magenta/10 touch-target"
+                            aria-label="Borrar"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </>
                       )}
-                      <button
-                        onClick={(e) => { e.stopPropagation(); remove(r.id) }}
-                        className="grid place-items-center w-9 h-9 rounded-full text-ink-faint hover:text-magenta hover:bg-magenta/10 touch-target"
-                        aria-label="Borrar"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
                     </div>
                   </div>
 
@@ -176,13 +203,13 @@ export default function Home() {
                         style={{ height: `${20 + (Math.round(c.confidence * 100) % 60)}%`, opacity: 0.7 }}
                       />
                     ))}
-                    {r.chords.length === 0 && <span className="text-xs text-ink-faint font-mono">sin acordes</span>}
+                    {r.chords.length === 0 && <span className="t-data text-caption text-ink-faint">sin acordes</span>}
                   </div>
 
                   {(r.key || r.tempo) && (
                     <div className="flex gap-2 mt-3">
-                      {r.key && <span className="pigment text-xs px-2.5 py-1 bg-magenta/[0.12] text-magenta">{r.key}</span>}
-                      {r.tempo && <span className="pigment text-xs px-2.5 py-1 bg-cobalto/[0.12] text-cobalto">{r.tempo} BPM</span>}
+                      {r.key && <span className="pigment text-caption px-2.5 py-1 bg-magenta/[0.12] text-magenta">{r.key}</span>}
+                      {r.tempo && <span className="pigment text-caption tabular-nums px-2.5 py-1 bg-cobalto/[0.12] text-cobalto">{r.tempo} BPM</span>}
                     </div>
                   )}
                 </div>
