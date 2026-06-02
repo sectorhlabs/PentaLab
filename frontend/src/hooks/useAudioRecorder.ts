@@ -277,9 +277,11 @@ export function useAudioRecorder(): UseAudioRecorderReturn {
       await analyzeWithWorker(samples, audioBuffer.sampleRate)
     } catch (err) {
       console.error('Processing failed:', err)
+      // Audio ilegible (grabación demasiado corta, formato no decodificable…):
+      // volvemos al inicio con un mensaje, en vez de un callejón sin salida.
+      setError('No pudimos leer esa grabación. Prueba a grabar de nuevo, un poco más larga.')
       setStatus('idle')
       setProgress(0)
-      throw err
     }
   }, [audioBlob, audioContext, analyzeWithWorker])
 

@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Mic, Square, Check } from 'lucide-react'
+import { Mic, Square, Check, AlertTriangle } from 'lucide-react'
 import { useAudioRecorder } from '../hooks/useAudioRecorder'
 import { useRecordingStore } from '../stores/recordingStore'
 import { saveAudioBlob } from '../services/storage'
@@ -15,6 +15,8 @@ export default function Create() {
   const setCurrentRecording = useRecordingStore((s) => s.setCurrentRecording)
   const renameRecording = useRecordingStore((s) => s.renameRecording)
   const savedIdRef = useRef<string | null>(null)
+  const pendingRef = useRef<Parameters<typeof addRecording>[0] | null>(null)
+  const [saveError, setSaveError] = useState(false)
   const [titleDraft, setTitleDraft] = useState('')
 
   const {
@@ -32,31 +34,48 @@ export default function Create() {
       hasProcessedRef.current = false
       savedRef.current = false
       savedIdRef.current = null
+      pendingRef.current = null
+      setSaveError(false)
       setTitleDraft('')
     }
     if (status === 'complete') hasProcessedRef.current = false
   }, [status, audioBlob, processRecording])
 
+  // Persiste el audio + metadatos. Si IndexedDB rechaza (sin espacio en el
+  // dispositivo, p. ej.), marcamos el error en vez de fingir que se guardó.
+  const persist = useCallback(async (rec: Parameters<typeof addRecording>[0], blob: Blob) => {
+    try {
+      await saveAudioBlob(rec.id, blob)
+      addRecording(rec)
+      setCurrentRecording(rec)
+      savedIdRef.current = rec.id
+      setTitleDraft(rec.title)
+      setSaveError(false)
+    } catch (err) {
+      console.error('No se pudo guardar la grabación:', err)
+      setSaveError(true)
+    }
+  }, [addRecording, setCurrentRecording])
+
   useEffect(() => {
     if (status !== 'complete' || !audioBlob || savedRef.current) return
     savedRef.current = true
 
-    const id = crypto.randomUUID()
-    const createdAt = new Date().toISOString()
-    const title = `Lámina ${new Date().toLocaleString('es-ES', {
-      day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit',
-    })}`
-    const recording = { id, title, duration, chords, key: musicKey ?? undefined, tempo: tempo ?? undefined, createdAt }
+    const recording = {
+      id: crypto.randomUUID(),
+      title: `Lámina ${new Date().toLocaleString('es-ES', {
+        day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit',
+      })}`,
+      duration, chords, key: musicKey ?? undefined, tempo: tempo ?? undefined,
+      createdAt: new Date().toISOString(),
+    }
+    pendingRef.current = recording
+    persist(recording, audioBlob)
+  }, [status, audioBlob, duration, chords, musicKey, tempo, persist])
 
-    saveAudioBlob(id, audioBlob)
-      .then(() => {
-        addRecording(recording)
-        setCurrentRecording(recording)
-        savedIdRef.current = id
-        setTitleDraft(title)
-      })
-      .catch((err) => console.error('No se pudo guardar la grabación:', err))
-  }, [status, audioBlob, duration, chords, musicKey, tempo, addRecording, setCurrentRecording])
+  const retrySave = () => {
+    if (pendingRef.current && audioBlob) persist(pendingRef.current, audioBlob)
+  }
 
   const handleRecordClick = () => {
     if (status === 'idle') startRecording()
@@ -151,6 +170,21 @@ export default function Create() {
         )
 
       case 'complete':
+        if (saveError) return (
+          <div className="flex flex-col items-center w-full text-center animate-bloom">
+            <span className="grid place-items-center w-20 h-20 rounded-full bg-magenta/[0.12] text-magenta mb-5">
+              <AlertTriangle className="w-9 h-9" strokeWidth={2} />
+            </span>
+            <h2 className="t-h2 text-ink">No se pudo guardar</h2>
+            <p className="t-body text-ink-soft mt-1 mb-5 max-w-[300px]">
+              Puede que te quede poco espacio en el dispositivo. Libera algo y reinténtalo; tu grabación sigue aquí.
+            </p>
+            <div className="flex gap-3 w-full max-w-[300px]">
+              <button className="btn btn-secondary flex-1" onClick={reset}>Descartar</button>
+              <button className="btn btn-primary flex-1" onClick={retrySave}>Reintentar</button>
+            </div>
+          </div>
+        )
         return (
           <div className="flex flex-col items-center w-full animate-bloom">
             <span className="grid place-items-center w-20 h-20 rounded-full bg-oliva/15 text-oliva mb-5">
@@ -174,6 +208,7 @@ export default function Create() {
                   }
                 }}
                 placeholder="Mi canción"
+                maxLength={80}
                 className="field px-3 py-2.5 t-title"
               />
             </label>
@@ -215,7 +250,7 @@ export default function Create() {
       {(status === 'processing' || status === 'analyzing') && (
         <button className="btn btn-ghost self-center" onClick={reset}>Cancelar</button>
       )}
-      {status === 'complete' && (
+      {status === 'complete' && !saveError && (
         <button className="btn btn-ghost self-center" onClick={reset}>Grabar otra</button>
       )}
     </div>

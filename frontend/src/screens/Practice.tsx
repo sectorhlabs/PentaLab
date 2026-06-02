@@ -57,6 +57,7 @@ export default function Practice() {
   const [volume, setVolume] = useState(0.8)
   const [isLooping, setIsLooping] = useState(false)
   const [audioReady, setAudioReady] = useState(false)
+  const [audioError, setAudioError] = useState<null | 'missing' | 'load'>(null)
 
   const chords = currentRecording?.chords ?? []
   const lyrics = currentRecording?.lyrics ?? []
@@ -66,14 +67,20 @@ export default function Practice() {
     if (!currentRecording) return
     let url: string | null = null
     let cancelled = false
+    setAudioReady(false)
+    setAudioError(null)
     getAudioBlob(currentRecording.id)
       .then((blob) => {
-        if (!blob || cancelled || !audioRef.current) return
+        if (cancelled || !audioRef.current) return
+        if (!blob) { setAudioError('missing'); return }
         url = URL.createObjectURL(blob)
         audioRef.current.src = url
         setAudioReady(true)
       })
-      .catch((err) => console.error('No se pudo cargar el audio:', err))
+      .catch((err) => {
+        console.error('No se pudo cargar el audio:', err)
+        if (!cancelled) setAudioError('load')
+      })
     return () => {
       cancelled = true
       if (url) URL.revokeObjectURL(url)
@@ -164,6 +171,7 @@ export default function Practice() {
         onPlay={() => setIsPlaying(true)}
         onPause={() => setIsPlaying(false)}
         onEnded={() => setIsPlaying(false)}
+        onError={() => setAudioError('load')}
         hidden
       />
 
@@ -179,6 +187,7 @@ export default function Practice() {
                 if (e.key === 'Escape') setEditingTitle(false)
               }}
               onBlur={() => { if (titleDraft.trim()) renameRecording(currentRecording.id, titleDraft.trim()); setEditingTitle(false) }}
+              maxLength={80}
               className="field flex-1 min-w-0 px-2.5 py-1 t-h1"
             />
             <button
@@ -201,7 +210,8 @@ export default function Practice() {
             </button>
             <button
               onClick={downloadAudio}
-              className="grid place-items-center w-8 h-8 rounded-full text-ink-faint hover:text-cobalto hover:bg-cobalto/10 shrink-0"
+              disabled={!audioReady}
+              className="grid place-items-center w-8 h-8 rounded-full text-ink-faint hover:text-cobalto hover:bg-cobalto/10 shrink-0 disabled:opacity-40 disabled:pointer-events-none"
               aria-label="Descargar audio"
             >
               <Download className="w-4 h-4" />
@@ -298,6 +308,14 @@ export default function Practice() {
             </>
           )}
         </div>
+      )}
+
+      {audioError && (
+        <p className="t-meta text-magenta text-center bg-magenta/[0.10] edge-painted-sm px-3 py-2 mb-4">
+          {audioError === 'missing'
+            ? 'No encontramos el audio de esta lámina. Quizá se borró para liberar espacio; aún puedes ver sus acordes y letra.'
+            : 'No se pudo cargar el audio de esta lámina.'}
+        </p>
       )}
 
       {/* Barra de progreso. */}

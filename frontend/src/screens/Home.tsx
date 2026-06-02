@@ -137,6 +137,7 @@ export default function Home() {
                             if (e.key === 'Escape') setEditingId(null)
                           }}
                           onBlur={commitEdit}
+                          maxLength={80}
                           className="field bg-paper px-2.5 py-1.5 t-title"
                         />
                       ) : (
