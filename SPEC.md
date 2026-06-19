@@ -13,9 +13,11 @@
 ## 2. Design Language
 
 ### Aesthetic Direction
+
 Inspirado en apps como Spotify, SoundHound y Guitar Pro. Interfaz oscura con acentos vibrantes que destacan elementos interactivos. Glassmorphism sutil para profundidad sin distractores.
 
 ### Color Palette
+
 ```
 --bg-primary: #0D0D0D        (negro profundo)
 --bg-secondary: #1A1A1A      (gris oscuro)
@@ -35,17 +37,20 @@ Inspirado en apps como Spotify, SoundHound y Guitar Pro. Interfaz oscura con ace
 ```
 
 ### Typography
+
 - **Primary:** Inter (weights: 400, 500, 600, 700)
 - **Monospace:** JetBrains Mono (para datos de tempo, timestamps)
 - **Fallback:** -apple-system, BlinkMacSystemFont, sans-serif
 
 ### Spatial System
+
 - Base unit: 4px
 - Spacing scale: 4, 8, 12, 16, 24, 32, 48, 64, 96
 - Border radius: 8px (small), 12px (medium), 16px (large), 24px (cards)
 - Touch targets mínimo: 44x44px
 
 ### Motion Philosophy
+
 - Micro-interacciones suaves (150-300ms)
 - Transiciones de estado con ease-out
 - Feedback táctil: scale(0.97) en press
@@ -53,6 +58,7 @@ Inspirado en apps como Spotify, SoundHound y Guitar Pro. Interfaz oscura con ace
 - No animaciones pesadas que consuman batería
 
 ### Visual Assets
+
 - **Icons:** Lucide React (consistent stroke width)
 - **Waveforms:** Canvas/WebGL rendering
 - **Chord diagrams:** SVG inline
@@ -63,6 +69,7 @@ Inspirado en apps como Spotify, SoundHound y Guitar Pro. Interfaz oscura con ace
 ## 3. Layout & Structure
 
 ### Navegación Principal
+
 Bottom navigation bar (estilo TikTok/Spotify):
 
 ```
@@ -72,6 +79,7 @@ Bottom navigation bar (estilo TikTok/Spotify):
 ### Screens
 
 #### 3.1 Home / Grabaciones
+
 - Header con greeting personalizado + fecha
 - Lista de grabaciones recientes (cards)
 - FAB para nueva grabación
@@ -79,12 +87,14 @@ Bottom navigation bar (estilo TikTok/Spotify):
 - Swipe actions: delete, share
 
 #### 3.2 Biblioteca
+
 - Grid de canciones guardadas
 - Filtros: todas, recientes, favoritos
 - Search bar sticky
 - Long-press para acciones múltiples
 
 #### 3.3 Crear / Editor de Canción
+
 - **Step 1:** Recording interface
   - Visualizador de waveform en tiempo real
   - Contador de duración
@@ -108,6 +118,7 @@ Bottom navigation bar (estilo TikTok/Spotify):
   - Transpose controls
 
 #### 3.4 Practicar
+
 - Pantalla principal de playback
 - Chord prominently displayed (fuente grande, centro)
 - Letra scrolleable con acorde marcado
@@ -116,6 +127,7 @@ Bottom navigation bar (estilo TikTok/Spotify):
 - Tempo adjustment in-app
 
 #### 3.5 Ajustes
+
 - Perfil de usuario
 - Calidad de grabación
 - Tema (dark only para MVP)
@@ -123,6 +135,7 @@ Bottom navigation bar (estilo TikTok/Spotify):
 - Sobre/ayuda
 
 ### Responsive Strategy
+
 - **Mobile-first:** 320px - 428px (primary target)
 - **Tablet:** 768px+ (layout adapts to 2-column donde tenga sentido)
 - **Desktop:** 1024px+ (para edición detallada, no priority)
@@ -134,12 +147,14 @@ Bottom navigation bar (estilo TikTok/Spotify):
 ### 4.1 Grabación de Audio
 
 **Captura:**
+
 - MediaRecorder API (web) / Capacitor (native)
 - Formato: WebM (web) / AAC (native)
 - Sample rate: 44.1kHz
 - Calidad: Alta (bitrate 128-256kbps)
 
 **Estados:**
+
 - `idle`: Botón ready, waveform vacío
 - `recording`: Pulsing red dot, timer running, waveform live
 - `paused`: Waveform congelado, timer pausado
@@ -147,6 +162,7 @@ Bottom navigation bar (estilo TikTok/Spotify):
 - `complete`: Preview playable
 
 **Interacciones:**
+
 - Tap: Start/stop recording
 - Long press: Pause/resume
 - Swipe left on recording: Delete confirmation
@@ -154,16 +170,30 @@ Bottom navigation bar (estilo TikTok/Spotify):
 ### 4.2 Detección de Acordes (Backend)
 
 **Pipeline:**
+
 ```
 Audio File → FFmpeg → WAV → Madmom (CNN+CRF) → Chord Timeline JSON
 ```
 
 **Output:**
+
 ```json
 {
   "chords": [
-    { "start": 0.0, "end": 3.2, "root": "C", "quality": "major", "confidence": 0.95 },
-    { "start": 3.2, "end": 6.1, "root": "Am", "quality": "minor", "confidence": 0.88 }
+    {
+      "start": 0.0,
+      "end": 3.2,
+      "root": "C",
+      "quality": "major",
+      "confidence": 0.95
+    },
+    {
+      "start": 3.2,
+      "end": 6.1,
+      "root": "Am",
+      "quality": "minor",
+      "confidence": 0.88
+    }
   ],
   "tempo": 120,
   "key": "C"
@@ -171,12 +201,14 @@ Audio File → FFmpeg → WAV → Madmom (CNN+CRF) → Chord Timeline JSON
 ```
 
 **Transiciones:**
+
 - Grabación → "Subiendo..." (progress bar)
 - → "Analizando audio..." ( indeterminate progress)
 - → "Detectando acordes..." (progress 0-90%)
 - → "Listo!" (success, auto-navigate)
 
 **Errores:**
+
 - Audio muy corto (<3s): "Grabación muy corta. Intenta grabar al menos 5 segundos."
 - Backend offline: "Servicio temporalmente no disponible. Intenta más tarde."
 - Detección fallida: "No pudimos detectar acordes. Puedes editarlos manualmente."
@@ -184,6 +216,7 @@ Audio File → FFmpeg → WAV → Madmom (CNN+CRF) → Chord Timeline JSON
 ### 4.3 Editor de Letras
 
 **Estructura de datos:**
+
 ```json
 {
   "sections": [
@@ -199,12 +232,14 @@ Audio File → FFmpeg → WAV → Madmom (CNN+CRF) → Chord Timeline JSON
 ```
 
 **Interacciones:**
+
 - Tap en timestamp: Play audio desde ese punto
 - Typing: Auto-advance al siguiente timestamp (basado en tempo estimado)
 - Drag handles: Ajustar timing de sección
 - Pull-up: Agregar nueva sección
 
 **Auto-timestamp:**
+
 - Mientras usuario escribe, sistema estima timestamps basándose en:
   - Duración total de la sección
   - Caracteres por línea (promedio)
@@ -213,17 +248,20 @@ Audio File → FFmpeg → WAV → Madmom (CNN+CRF) → Chord Timeline JSON
 ### 4.4 Playback con Sync
 
 **Componentes:**
+
 - Waveform seekbar (touch-draggable)
 - Current chord display (badge grande)
 - Lyrics view (scroll automático)
 - Transport controls
 
 **Comportamiento de scroll:**
+
 - Lyric activo centrado verticalmente
 - Scroll suave al siguiente lyric
 - 用户可以手动 scroll (pausa auto-scroll por 3s)
 
 **Chord overlay:**
+
 - Posición: Above lyrics, centered
 - Font: 32px bold
 - Background: pill shape con blur
@@ -232,16 +270,19 @@ Audio File → FFmpeg → WAV → Madmom (CNN+CRF) → Chord Timeline JSON
 ### 4.5 Práctica
 
 **Loop Section:**
+
 - Long press + drag en waveform para marcar region
 - Botón "Loop" aparece
 - Reproducción infinita de la sección
 
 **Tempo Control:**
+
 - Slider: 0.5x - 1.5x
 - Presets: 0.5x, 0.75x, 1.0x
 - Metrónome toggle (click track)
 
 **Transpose:**
+
 - Botones +1 semitono / -1 semitono
 - Rango: -6 a +6
 - afecta visualización, no el audio
@@ -249,6 +290,7 @@ Audio File → FFmpeg → WAV → Madmom (CNN+CRF) → Chord Timeline JSON
 ### 4.6 Stem Separation (Premium/Future)
 
 **Implementación:** Demucs (Meta)
+
 - Separación en 4 stems: vocals, drums, bass, other
 - UI: Toggles on/off por stem
 - Uso: Practice con solo instrumental o Count-in
@@ -262,18 +304,21 @@ Audio File → FFmpeg → WAV → Madmom (CNN+CRF) → Chord Timeline JSON
 ### 5.1 Button
 
 **Variants:**
+
 - `primary`: bg-accent-primary, white text
 - `secondary`: bg-transparent, border accent
 - `ghost`: bg-transparent, text secondary
 - `danger`: bg-red-600, white text
 
 **Sizes:**
+
 - `sm`: h-36, px-12, text-sm
 - `md`: h-44, px-16, text-base (default for touch)
 - `lg`: h-52, px-24, text-lg
 - `fab`: h-64, w-64, circular
 
 **States:**
+
 - default: opacity 100%
 - hover/focus: brightness 110%
 - pressed: scale(0.97)
@@ -418,6 +463,7 @@ Audio File → FFmpeg → WAV → Madmom (CNN+CRF) → Chord Timeline JSON
 ### 6.1 Stack
 
 **Frontend:**
+
 - React 18 (o Next.js para SSR si se necesita SEO)
 - TypeScript 5
 - Vite (bundler)
@@ -430,10 +476,12 @@ Audio File → FFmpeg → WAV → Madmom (CNN+CRF) → Chord Timeline JSON
 - Pitchfinder (client-side pitch detection)
 
 **Backend (Optional - for enhanced accuracy):**
+
 - FastAPI (Python) - solo si se requiere precisión máxima
 - Para MVP: todo el procesamiento es client-side
 
 **Mobile:**
+
 - Capacitor (wrapper para iOS/Android)
 - PWA capabilities (offline, installable)
 
@@ -639,6 +687,7 @@ mymusic/
 ## 8. Scope Control (MVP vs Full)
 
 ### MVP (Fase 1)
+
 - ✅ Recording (mobile only)
 - ✅ Upload to backend
 - ✅ Chord detection (Madmom)
@@ -648,6 +697,7 @@ mymusic/
 - ✅ Tempo adjustment
 
 ### Full App (Fase 2)
+
 - ✅ Stem separation (Demucs)
 - ✅ Loop sections
 - ✅ Share recordings
@@ -660,16 +710,19 @@ mymusic/
 ## 9. Testing Strategy
 
 ### Frontend
+
 - Vitest + React Testing Library
 - Component tests: buttons, cards, inputs
 - Integration: recording flow, playback flow
 
 ### Backend
+
 - Pytest
 - API endpoint tests
 - Mock Madmom for unit tests
 
 ### E2E (Post-MVP)
+
 - Playwright
 - Critical flows: record → analyze → practice
 
@@ -678,18 +731,21 @@ mymusic/
 ## 10. Deployment
 
 ### Frontend
+
 - Vercel (preferred) o Netlify
 - Preview deployments for PRs
 
 ### Backend
+
 - Railway / Render (Python support)
 - Docker container
 - Scales with demand
 
 ### Storage
+
 - Cloudflare R2 (S3-compatible, cheaper)
 - o AWS S3
 
 ---
 
-*Last updated: 2026-05-29*
+_Last updated: 2026-05-29_
