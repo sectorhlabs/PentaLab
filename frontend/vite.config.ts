@@ -6,11 +6,6 @@ export default defineConfig({
   server: {
     port: 3000,
     host: true,
-    // En desarrollo, redirige las llamadas al backend local (si está corriendo).
-    proxy: {
-      '/api': { target: 'http://localhost:8000', changeOrigin: true },
-      '/health': { target: 'http://localhost:8000', changeOrigin: true },
-    },
   },
   build: {
     target: 'esnext',

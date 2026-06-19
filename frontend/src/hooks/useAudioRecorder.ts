@@ -1,7 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
 import { downmixToMono, type Chord } from '../lib/audioProcessor'
 import type { ChordWorkerResponse } from '../workers/chordWorker'
-import { isBackendAvailable, analyzeViaBackend } from '../services/api'
 
 export type RecordingStatus = 'idle' | 'recording' | 'paused' | 'processing' | 'analyzing' | 'complete'
 
@@ -254,21 +253,6 @@ export function useAudioRecorder(): UseAudioRecorderReturn {
 
     setStatus('analyzing')
     setProgress(0)
-
-    // 1) Backend si está disponible (mayor precisión). 2) Fallback al worker.
-    try {
-      if (await isBackendAvailable()) {
-        const result = await analyzeViaBackend(audioBlob, setProgress)
-        setChords(result.chords)
-        setMusicKey(result.key)
-        setTempo(result.tempo)
-        setStatus('complete')
-        setProgress(1)
-        return
-      }
-    } catch (err) {
-      console.warn('Backend no disponible o falló; usando análisis on-device:', err)
-    }
 
     try {
       const arrayBuffer = await audioBlob.arrayBuffer()

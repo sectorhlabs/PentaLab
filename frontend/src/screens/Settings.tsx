@@ -1,20 +1,14 @@
 import { useState } from 'react'
-import { User, HelpCircle, Server, Info, LogOut, Download, Share, Check } from 'lucide-react'
-import { getBackendUrl, setBackendUrl, isBackendAvailable } from '../services/api'
+import { User, HelpCircle, LogOut, Download, Share, Check } from 'lucide-react'
 import { useSettingsStore } from '../stores/settingsStore'
 import { usePwaInstall } from '../hooks/usePwaInstall'
 import { Wordmark, Signature } from '../components/decor'
 import { BottomSheet } from '../components/BottomSheet'
 
-type ConnState = 'idle' | 'checking' | 'ok' | 'fail'
-
 export default function SettingsPage() {
   const artistName = useSettingsStore((s) => s.artistName)
   const setArtistName = useSettingsStore((s) => s.setArtistName)
 
-  const [url, setUrl] = useState(getBackendUrl())
-  const [conn, setConn] = useState<ConnState>('idle')
-  const [showInfo, setShowInfo] = useState(false)
   const [showAbout, setShowAbout] = useState(false)
   const [showInstall, setShowInstall] = useState(false)
 
@@ -26,12 +20,6 @@ export default function SettingsPage() {
   const logout = async () => {
     try { await fetch('/api/logout', { method: 'POST' }) } finally { location.reload() }
   }
-
-  const save = (v: string) => { setUrl(v); setBackendUrl(v); setConn('idle') }
-  const test = async () => { setConn('checking'); setConn((await isBackendAvailable()) ? 'ok' : 'fail') }
-
-  const label: Record<ConnState, string> = { idle: '', checking: 'Comprobando…', ok: '✓ Conectado', fail: '✗ Sin respuesta' }
-  const color: Record<ConnState, string> = { idle: '', checking: 'text-ink-faint', ok: 'text-oliva', fail: 'text-magenta' }
 
   const displayName = artistName.trim() || 'artista'
 
@@ -63,45 +51,6 @@ export default function SettingsPage() {
             maxLength={40}
             className="field px-3 py-2.5 t-title"
           />
-        </div>
-      </section>
-
-      {/* Backend de análisis */}
-      <section className="mb-6">
-        <h2 className="t-eyebrow text-ink-faint mb-2 px-1">Análisis avanzado</h2>
-        <div className="sheet space-y-3">
-          <div className="flex items-center gap-3">
-            <span className="grid place-items-center w-9 h-9 rounded-full bg-cobalto/[0.12] text-cobalto shrink-0">
-              <Server className="w-4 h-4" />
-            </span>
-            <div className="min-w-0 flex-1">
-              <p className="t-label text-ink">Servidor de acordes</p>
-              <p className="t-meta text-ink-faint">Opcional. Si no responde, se analiza en el dispositivo.</p>
-            </div>
-            <button
-              onClick={() => setShowInfo(true)}
-              className="grid place-items-center w-9 h-9 rounded-full text-ink-faint hover:text-cobalto hover:bg-cobalto/10 shrink-0 touch-target"
-              aria-label="Qué es esto"
-            >
-              <Info className="w-5 h-5" />
-            </button>
-          </div>
-          <input
-            type="url" inputMode="url" autoCapitalize="none" autoCorrect="off" spellCheck={false}
-            placeholder="https://tu-tunel.trycloudflare.com"
-            value={url}
-            onChange={(e) => save(e.target.value)}
-            aria-label="Dirección del servidor de acordes"
-            className="field px-3 py-2.5 t-body"
-          />
-          <p className="t-meta text-ink-faint">
-            Pega aquí la dirección de tu servidor de acordes (por ejemplo, el túnel que te
-            da Cloudflare). Si lo dejas vacío, PentaLab analiza en el dispositivo.
-          </p>
-          <div className="flex items-center justify-between">
-            <span className={`t-caption ${color[conn]}`}>{label[conn]}</span>
-            <button onClick={test} className="btn btn-secondary t-label px-4 py-2">Probar conexión</button>
-          </div>
         </div>
       </section>
 
@@ -159,43 +108,6 @@ export default function SettingsPage() {
         <Wordmark className="text-ink-soft text-sm" />
         <Signature name={displayName} className="mt-1" />
       </div>
-
-      <BottomSheet open={showInfo} onClose={() => setShowInfo(false)} title="Análisis avanzado">
-        <div className="space-y-4 t-body text-ink-soft">
-          <p>
-            PentaLab detecta los acordes <strong className="text-ink font-semibold">en tu propio
-            teléfono</strong>, sin internet. Funciona siempre, sin configurar nada.
-          </p>
-          <p>
-            Si quieres <strong className="text-ink font-semibold">aún más precisión</strong>, puedes
-            conectar un “servidor de acordes”: un pequeño programa que corre en tu ordenador y
-            analiza con más potencia.
-          </p>
-
-          <div className="sheet bg-paper-deep space-y-2">
-            <p className="t-title text-ink">¿Qué pongo en el campo?</p>
-            <p>
-              La <strong className="text-ink font-semibold">dirección (URL)</strong> de ese servidor.
-              Lo normal es exponerlo con un túnel gratuito y pegar aquí la dirección que te da, algo como:
-            </p>
-            <p className="t-data text-caption text-cobalto break-all bg-paper edge-painted-sm px-2.5 py-1.5">
-              https://xxxx.trycloudflare.com
-            </p>
-          </div>
-
-          <p>
-            Si lo dejas <strong className="text-ink font-semibold">vacío</strong> o el servidor no
-            responde, PentaLab usa el análisis del teléfono automáticamente. No se rompe nada.
-          </p>
-          <p className="t-meta text-ink-faint">
-            Las instrucciones para montar el servidor están en el archivo
-            <span className="font-mono"> backend/README.md</span> del proyecto.
-          </p>
-        </div>
-        <button onClick={() => setShowInfo(false)} className="btn btn-primary w-full mt-6">
-          Entendido
-        </button>
-      </BottomSheet>
 
       <BottomSheet open={showAbout} onClose={() => setShowAbout(false)} title="">
         <div className="flex flex-col items-center text-center -mt-2">
