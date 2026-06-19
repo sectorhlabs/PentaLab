@@ -3,8 +3,10 @@ import { useNavigate } from 'react-router-dom'
 import { Mic, Square, Check, AlertTriangle } from 'lucide-react'
 import { useAudioRecorder } from '../hooks/useAudioRecorder'
 import { useRecordingStore } from '../stores/recordingStore'
+import { useSettingsStore } from '../stores/settingsStore'
 import { saveAudioBlob } from '../services/storage'
 import { PaintBlob } from '../components/decor'
+import { BottomSheet } from '../components/BottomSheet'
 import { formatTime } from '../lib/format'
 
 export default function Create() {
@@ -20,6 +22,10 @@ export default function Create() {
   const [saveError, setSaveError] = useState(false)
   const [isFirst, setIsFirst] = useState(false)
   const [titleDraft, setTitleDraft] = useState('')
+  const [showMicPrime, setShowMicPrime] = useState(false)
+
+  const hasPrimedMic = useSettingsStore((s) => s.hasPrimedMic)
+  const markMicPrimed = useSettingsStore((s) => s.markMicPrimed)
 
   const {
     status, duration, progress, chords, musicKey, tempo, error,
@@ -83,8 +89,17 @@ export default function Create() {
   }
 
   const handleRecordClick = () => {
-    if (status === 'idle') startRecording()
-    else if (status === 'recording') stopRecording()
+    if (status === 'idle') {
+      // La primera vez, explicamos el permiso antes del prompt del navegador.
+      if (!hasPrimedMic) { setShowMicPrime(true); return }
+      startRecording()
+    } else if (status === 'recording') stopRecording()
+  }
+
+  const allowMic = () => {
+    markMicPrimed()
+    setShowMicPrime(false)
+    startRecording()
   }
 
   const circ = 2 * Math.PI * 45
@@ -257,6 +272,19 @@ export default function Create() {
       {status === 'complete' && !saveError && (
         <button className="btn btn-ghost self-center" onClick={reset}>Grabar otra</button>
       )}
+
+      <BottomSheet open={showMicPrime} onClose={() => setShowMicPrime(false)} title="Permiso de micrófono">
+        <div className="space-y-4">
+          <p className="t-body text-ink-soft">
+            PentaLab necesita oír tu música para pintar los acordes. El navegador
+            te pedirá permiso para usar el micrófono.
+          </p>
+          <p className="t-meta text-ink-faint">
+            El audio se procesa en tu teléfono; no se sube a ningún sitio.
+          </p>
+          <button onClick={allowMic} className="btn btn-primary w-full">Permitir y grabar</button>
+        </div>
+      </BottomSheet>
     </div>
   )
 }

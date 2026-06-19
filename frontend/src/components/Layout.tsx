@@ -1,6 +1,7 @@
 import { Suspense } from 'react'
 import { Outlet } from 'react-router-dom'
 import BottomNav from './BottomNav'
+import Onboarding from './Onboarding'
 
 function ScreenFallback() {
   return (
@@ -28,6 +29,7 @@ export default function Layout() {
         </Suspense>
       </main>
       <BottomNav />
+      <Onboarding />
     </div>
   )
 }
