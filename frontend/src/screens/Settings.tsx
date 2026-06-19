@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { User, HelpCircle, LogOut, Download, Share, Check } from 'lucide-react'
+import { User, HelpCircle, Download, Share, Check } from 'lucide-react'
 import { useSettingsStore } from '../stores/settingsStore'
 import { usePwaInstall } from '../hooks/usePwaInstall'
 import { Wordmark, Signature } from '../components/decor'
@@ -16,10 +16,6 @@ export default function SettingsPage() {
   // Mostramos la opción siempre que no esté ya instalada. Si el navegador no
   // ofrece el prompt nativo, abrimos instrucciones según la plataforma.
   const showInstallSection = !installed
-
-  const logout = async () => {
-    try { await fetch('/api/logout', { method: 'POST' }) } finally { location.reload() }
-  }
 
   const displayName = artistName.trim() || 'artista'
 
@@ -90,17 +86,6 @@ export default function SettingsPage() {
             </span>
             <span className="flex-1 t-label text-ink">Sobre PentaLab</span>
           </button>
-          {import.meta.env.PROD && (
-            <button
-              onClick={logout}
-              className="w-full flex items-center gap-4 p-4 touch-target text-left border-t border-paper-line"
-            >
-              <span className="grid place-items-center w-9 h-9 rounded-full bg-magenta/[0.12] text-magenta">
-                <LogOut className="w-4 h-4" />
-              </span>
-              <span className="flex-1 t-label text-ink">Cerrar sesión</span>
-            </button>
-          )}
         </div>
       </section>
 
