@@ -139,9 +139,19 @@ export function useAudioRecorder(): UseAudioRecorderReturn {
       if (!navigator.mediaDevices?.getUserMedia) {
         throw new Error('getUserMedia no disponible')
       }
+      // Sin soporte de grabación no abrimos siquiera el micro: mensaje honesto.
+      if (typeof MediaRecorder === 'undefined') {
+        setError('Tu navegador no permite grabar audio. Prueba con Chrome o un Safari actualizado.')
+        setStatus('idle')
+        return
+      }
+      // Captura musical: desactivamos el DSP de voz (cancelación de eco,
+      // supresión de ruido y AGC). Recortan armónicos y colas de decaimiento,
+      // y cada dispositivo lo aplica distinto → detección de acordes inestable.
       const audioConstraints: MediaTrackConstraints = {
-        echoCancellation: true,
-        noiseSuppression: true,
+        echoCancellation: false,
+        noiseSuppression: false,
+        autoGainControl: false,
       }
       // `ideal` (no `exact`) para no fallar si el micro elegido desaparece.
       if (selectedDeviceId) audioConstraints.deviceId = { ideal: selectedDeviceId }
@@ -282,6 +292,11 @@ export function useAudioRecorder(): UseAudioRecorderReturn {
     return () => {
       if (timerRef.current) {
         clearInterval(timerRef.current)
+      }
+      // Parar el recorder antes que los tracks: cierra la grabación en curso
+      // de forma limpia en vez de dejarlo colgado en estado 'recording'.
+      if (mediaRecorderRef.current?.state !== 'inactive') {
+        mediaRecorderRef.current?.stop()
       }
       if (streamRef.current) {
         streamRef.current.getTracks().forEach(track => track.stop())
