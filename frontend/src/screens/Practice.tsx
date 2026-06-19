@@ -7,14 +7,13 @@ import { PaintBlob } from '../components/decor'
 import { PlayAlong } from '../components/PlayAlong'
 import { LyricsEditor } from '../components/LyricsEditor'
 import { LyricsSync } from '../components/LyricsSync'
-import type { Chord } from '../services/api'
+import { formatTime } from '../lib/format'
+import type { Chord } from '../lib/audioProcessor'
 
 const PLAYBACK_RATES = [1, 0.75, 0.5] as const
 
 const chordLabel = (root: string, quality: string) =>
   `${root}${quality === 'minor' || quality === 'minor7' ? 'm' : ''}`
-
-const fmtTime = (s: number) => `${Math.floor(s / 60)}:${Math.floor(s % 60).toString().padStart(2, '0')}`
 
 // Fila memoizada: solo se re-renderiza si cambia su estado activo.
 const ChordRow = memo(function ChordRow({
@@ -26,7 +25,7 @@ const ChordRow = memo(function ChordRow({
       className={`w-full flex items-center gap-3 py-2.5 px-3 edge-painted-sm text-left transition-colors
         ${active ? 'bg-magenta/[0.12]' : 'hover:bg-ink/5'}`}
     >
-      <span className="t-data text-caption text-ink-faint w-9">{fmtTime(chord.start)}</span>
+      <span className="t-data text-caption text-ink-faint w-9">{formatTime(chord.start)}</span>
       <span className={`t-title w-12 ${active ? 'text-magenta' : 'text-ink'}`}>
         {chordLabel(chord.root, chord.quality)}
       </span>
@@ -137,8 +136,6 @@ export default function Practice() {
       seekTo(prev ? prev.start : 0)
     }
   }
-
-  const fmt = (s: number) => `${Math.floor(s / 60)}:${Math.floor(s % 60).toString().padStart(2, '0')}`
 
   const onProgressClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!progressRef.current || !duration) return
@@ -324,8 +321,8 @@ export default function Practice() {
         <div className="h-full bg-terracota rounded-full" style={{ width: `${duration ? (currentTime / duration) * 100 : 0}%` }} />
       </div>
       <div className="flex justify-between t-data text-caption text-ink-faint mb-5">
-        <span>{fmt(currentTime)}</span>
-        <span>{fmt(duration)}</span>
+        <span>{formatTime(currentTime)}</span>
+        <span>{formatTime(duration)}</span>
       </div>
 
       {/* Controles. */}

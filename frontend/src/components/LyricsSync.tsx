@@ -2,8 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Play, Pause, RotateCcw, Undo2, Check, X } from 'lucide-react'
 import { getAudioBlob } from '../services/storage'
 import type { LyricLine } from '../stores/recordingStore'
-
-const fmt = (s: number) => `${Math.floor(s / 60)}:${Math.floor(s % 60).toString().padStart(2, '0')}`
+import { formatTime } from '../lib/format'
 
 export function LyricsSync({
   open,
@@ -156,7 +155,7 @@ export function LyricsSync({
               className={`flex items-center gap-2 text-lg leading-snug transition-colors
                 ${isCurrent ? 'text-ink font-display font-semibold text-xl' : isMarked ? 'text-ink-soft' : 'text-ink-faint'}`}
             >
-              {isMarked && <span className="t-data text-caption text-oliva shrink-0 w-9">{fmt(times[i] as number)}</span>}
+              {isMarked && <span className="t-data text-caption text-oliva shrink-0 w-9">{formatTime(times[i] as number)}</span>}
               <span className="flex-1">{l.text}</span>
             </p>
           )
@@ -166,7 +165,7 @@ export function LyricsSync({
 
       <div className="px-5 pb-[calc(20px+env(safe-area-inset-bottom))] pt-3 border-t border-paper-line bg-paper-deep">
         <div className="flex items-center justify-between t-data text-caption text-ink-faint mb-3">
-          <span>{fmt(currentTime)}</span>
+          <span>{formatTime(currentTime)}</span>
           <button onClick={restart} className="inline-flex items-center gap-1.5 text-ink-soft" aria-label="Reiniciar">
             <RotateCcw className="w-3.5 h-3.5" /> Reiniciar
           </button>

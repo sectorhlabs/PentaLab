@@ -4,6 +4,7 @@ import { Search, Pencil, Trash2, Check, X } from 'lucide-react'
 import { useRecordingStore } from '../stores/recordingStore'
 import { useSettingsStore } from '../stores/settingsStore'
 import { Wordmark } from '../components/decor'
+import { formatTime } from '../lib/format'
 
 function greeting(name: string): string {
   const who = name.trim() || 'artista'
@@ -29,8 +30,6 @@ export default function Home() {
 
   const filtered = recordings.filter((r) => r.title.toLowerCase().includes(query.toLowerCase()))
 
-  const formatDuration = (s: number) =>
-    `${Math.floor(s / 60)}:${Math.floor(s % 60).toString().padStart(2, '0')}`
   const formatDate = (d: string) =>
     new Date(d).toLocaleDateString('es-ES', { day: 'numeric', month: 'long' })
 
@@ -144,7 +143,7 @@ export default function Home() {
                         <h3 className="t-title text-ink truncate">{r.title}</h3>
                       )}
                       <p className="t-data text-caption text-ink-faint mt-0.5">
-                        {formatDate(r.createdAt)} · {formatDuration(r.duration)}
+                        {formatDate(r.createdAt)} · {formatTime(r.duration)}
                       </p>
                     </div>
 

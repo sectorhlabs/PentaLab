@@ -5,6 +5,7 @@ import { useAudioRecorder } from '../hooks/useAudioRecorder'
 import { useRecordingStore } from '../stores/recordingStore'
 import { saveAudioBlob } from '../services/storage'
 import { PaintBlob } from '../components/decor'
+import { formatTime } from '../lib/format'
 
 export default function Create() {
   const navigate = useNavigate()
@@ -86,7 +87,6 @@ export default function Create() {
     else if (status === 'recording') stopRecording()
   }
 
-  const fmt = (s: number) => `${Math.floor(s / 60)}:${(s % 60).toString().padStart(2, '0')}`
   const circ = 2 * Math.PI * 45
 
   const content = () => {
@@ -133,7 +133,7 @@ export default function Create() {
             </div>
             <div className="flex items-center gap-2.5 mb-9">
               <span className="w-3 h-3 rounded-full bg-magenta animate-ink-pulse" />
-              <span className="t-data text-3xl text-ink">{fmt(duration)}</span>
+              <span className="t-data text-3xl text-ink">{formatTime(duration)}</span>
             </div>
             <button
               onClick={handleRecordClick}

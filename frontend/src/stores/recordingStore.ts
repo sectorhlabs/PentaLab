@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
-import type { Chord } from '../services/api'
+import type { Chord } from '../lib/audioProcessor'
 import { deleteAudioBlob, indexedDBStorage } from '../services/storage'
 
 /** Una línea de letra. `time` en segundos si está sincronizada; null si no. */
@@ -26,16 +26,14 @@ interface RecordingStore {
 
   addRecording: (recording: RecordingData) => void
   setCurrentRecording: (recording: RecordingData | null) => void
-  updateCurrentChords: (chords: Chord[]) => void
   renameRecording: (id: string, title: string) => void
   setLyrics: (id: string, lyrics: LyricLine[]) => void
   deleteRecording: (id: string) => void
-  getRecording: (id: string) => RecordingData | undefined
 }
 
 export const useRecordingStore = create<RecordingStore>()(
   persist(
-    (set, get) => ({
+    (set) => ({
       recordings: [],
       currentRecording: null,
 
@@ -47,18 +45,6 @@ export const useRecordingStore = create<RecordingStore>()(
 
       setCurrentRecording: (recording) => {
         set({ currentRecording: recording })
-      },
-
-      updateCurrentChords: (chords) => {
-        set((state) => {
-          if (!state.currentRecording) return state
-          return {
-            currentRecording: {
-              ...state.currentRecording,
-              chords
-            }
-          }
-        })
       },
 
       renameRecording: (id, title) => {
@@ -86,10 +72,6 @@ export const useRecordingStore = create<RecordingStore>()(
           recordings: state.recordings.filter(r => r.id !== id),
           currentRecording: state.currentRecording?.id === id ? null : state.currentRecording
         }))
-      },
-
-      getRecording: (id) => {
-        return get().recordings.find(r => r.id === id)
       }
     }),
     {

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, memo } from 'react'
 import type { LyricLine } from '../stores/recordingStore'
-import type { Chord } from '../services/api'
+import type { Chord } from '../lib/audioProcessor'
 
 const chordLabel = (root: string, quality: string) =>
   `${root}${quality === 'minor' || quality === 'minor7' ? 'm' : ''}`
