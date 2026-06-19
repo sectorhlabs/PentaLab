@@ -148,8 +148,8 @@ Bottom navigation bar (estilo TikTok/Spotify):
 
 **Captura:**
 
-- MediaRecorder API (web) / Capacitor (native)
-- Formato: WebM (web) / AAC (native)
+- MediaRecorder API (web/PWA)
+- Formato: WebM
 - Sample rate: 44.1kHz
 - Calidad: Alta (bitrate 128-256kbps)
 
@@ -167,12 +167,17 @@ Bottom navigation bar (estilo TikTok/Spotify):
 - Long press: Pause/resume
 - Swipe left on recording: Delete confirmation
 
-### 4.2 Detección de Acordes (Backend)
+### 4.2 Detección de Acordes (On-Device)
+
+Todo el análisis ocurre en el dispositivo, dentro de un Web Worker (sin red, sin
+servidor). No hay subida ni dependencia de backend.
 
 **Pipeline:**
 
 ```
-Audio File → FFmpeg → WAV → Madmom (CNN+CRF) → Chord Timeline JSON
+Blob → decodeAudioData → mono + decimación → FFT (chroma 12-bin) →
+filtro mediana → estimación de tono → emisiones con prior diatónico →
+Viterbi → coalescencia de acordes → Chord Timeline (+ tono + tempo)
 ```
 
 **Output:**
@@ -200,18 +205,16 @@ Audio File → FFmpeg → WAV → Madmom (CNN+CRF) → Chord Timeline JSON
 }
 ```
 
-**Transiciones:**
+**Transiciones (estados del recorder):**
 
-- Grabación → "Subiendo..." (progress bar)
-- → "Analizando audio..." ( indeterminate progress)
-- → "Detectando acordes..." (progress 0-90%)
-- → "Listo!" (success, auto-navigate)
+- `recording` → `analyzing` (worker corriendo, progress 0-100%)
+- → `complete` (success, preview + auto-navigate)
 
 **Errores:**
 
-- Audio muy corto (<3s): "Grabación muy corta. Intenta grabar al menos 5 segundos."
-- Backend offline: "Servicio temporalmente no disponible. Intenta más tarde."
-- Detección fallida: "No pudimos detectar acordes. Puedes editarlos manualmente."
+- Audio ilegible o demasiado corto para decodificar: "No pudimos leer esa
+  grabación. Prueba a grabar de nuevo, un poco más larga." (vuelve a `idle`)
+- Sin acordes detectados: el usuario puede editarlos manualmente en el editor.
 
 ### 4.3 Editor de Letras
 
@@ -295,7 +298,9 @@ Audio File → FFmpeg → WAV → Madmom (CNN+CRF) → Chord Timeline JSON
 - UI: Toggles on/off por stem
 - Uso: Practice con solo instrumental o Count-in
 
-**Nota:** Esta feature es compute-intensive. En MVP, puede ser server-side only con pricing tier.
+**Nota:** Esta feature es compute-intensive y no es viable on-device. Quedaría
+fuera del alcance actual (solo on-device); requeriría reintroducir un backend
+dedicado en una fase futura.
 
 ---
 
@@ -462,155 +467,106 @@ Audio File → FFmpeg → WAV → Madmom (CNN+CRF) → Chord Timeline JSON
 
 ### 6.1 Stack
 
-**Frontend:**
+**Frontend (única capa de la app):**
 
-- React 18 (o Next.js para SSR si se necesita SEO)
+- React 18
 - TypeScript 5
 - Vite (bundler)
-- TailwindCSS (styling)
-- Framer Motion (animations)
-- TanStack Query (state management)
-- Zustand (lightweight state)
-- Web Audio API (audio processing & chromagram)
-- MediaRecorder API (recording)
-- Pitchfinder (client-side pitch detection)
+- TailwindCSS (styling + animaciones por keyframes/CSS)
+- Zustand (estado, con persist sobre IndexedDB)
+- React Router (navegación)
+- lucide-react (iconos)
+- Web Audio API (`decodeAudioData`, chroma) + FFT propia (`lib/fft.ts`)
+- MediaRecorder API (grabación)
+- Web Worker (`chordWorker`) para el análisis sin bloquear la UI
 
-**Backend (Optional - for enhanced accuracy):**
-
-- FastAPI (Python) - solo si se requiere precisión máxima
-- Para MVP: todo el procesamiento es client-side
+**Backend:** ninguno. Toda la detección de acordes es on-device. La
+autenticación (`/api/login`, `/api/me`, `/api/logout`) la resuelve el proxy de
+producción, no un servidor de la app.
 
 **Mobile:**
 
-- Capacitor (wrapper para iOS/Android)
-- PWA capabilities (offline, installable)
+- PWA (instalable, offline). Sin Capacitor por ahora.
 
-### 6.2 API Design
+### 6.2 Persistencia y red
 
-**Base URL:** `/api/v1`
+No hay API REST propia: grabaciones, acordes y letras viven en el dispositivo.
 
-**Endpoints:**
+**Almacenamiento local (`services/storage.ts`):**
 
 ```
-POST   /recordings              → Crear nueva grabación
-GET    /recordings              → Listar grabaciones
-GET    /recordings/:id          → Detalle de grabación
-DELETE /recordings/:id          → Eliminar grabación
-
-POST   /recordings/:id/analyze   → Iniciar análisis de acordes
-GET    /recordings/:id/status    → Estado del análisis (polling)
-
-PUT    /recordings/:id/lyrics   → Actualizar letras
-GET    /recordings/:id/stream   → Audio stream
-
-POST   /stems/:recording_id     → Separar stems (async)
-GET    /stems/:recording_id     → Obtener stems separados
+IndexedDB "pentalab-db"
+  ├── store "recordings"  → { id, blob }            (audio crudo)
+  └── store "kv"          → adaptador para zustand persist
+                            (metadata: lista de grabaciones, acordes, letras)
 ```
 
-**Request/Response examples:**
+- El análisis devuelve `{ chords, key, tempo }` desde el worker; se guarda junto
+  con la metadata. No hay polling ni jobs asíncronos remotos.
+- Al borrar una grabación se elimina su blob de IndexedDB y su metadata del store.
 
-```yaml
-# POST /recordings
-POST /api/v1/recordings
-Content-Type: multipart/form-data
+**Único contacto con red — autenticación (proxy de producción, no la app):**
 
-Response 201:
-{
-  "id": "uuid",
-  "filename": "recording_uuid.webm",
-  "duration": 180.5,
-  "created_at": "2026-05-29T12:00:00Z"
+```
+POST /api/login    → inicia sesión (cookie firmada)
+GET  /api/me       → valida la sesión actual
+POST /api/logout   → cierra sesión
+```
+
+### 6.3 Data Model (client-side)
+
+Sin base de datos ni esquema relacional. Los tipos viven en el cliente y se
+serializan en IndexedDB.
+
+```ts
+RecordingData {           // metadata, en el store kv vía zustand persist
+  id: string              // crypto.randomUUID()
+  title: string
+  duration: number        // segundos
+  chords: Chord[]
+  key?: string
+  tempo?: number
+  lyrics?: LyricLine[]
+  createdAt: string        // ISO
 }
 
-# POST /recordings/:id/analyze
-POST /api/v1/recordings/uuid/analyze
-
-Response 202:
-{
-  "job_id": "uuid",
-  "status": "queued"
-}
-
-# GET /recordings/:id/status
-GET /api/v1/recordings/uuid/status
-
-Response 200:
-{
-  "status": "completed|processing|failed",
-  "progress": 0.67,
-  "result": {
-    "chords": [...],
-    "tempo": 120,
-    "key": "C"
-  },
-  "error": null
-}
+Chord     { start: number; end: number; root: string; quality: string; confidence: number }
+LyricLine { time: number | null; text: string }   // time = null si no está sincronizada
 ```
 
-### 6.3 Data Model
+El audio crudo (Blob) se guarda aparte, en el store `recordings`, con la misma
+`id` como clave.
+
+### 6.4 Audio Processing Pipeline (On-Device)
+
+Implementado a mano en `lib/audioProcessor.ts` (+ FFT propia en `lib/fft.ts`),
+ejecutado en `workers/chordWorker.ts` para no bloquear la UI.
 
 ```
-User
-  - id: UUID
-  - email: string
-  - created_at: timestamp
-
-Recording
-  - id: UUID
-  - user_id: FK → User
-  - title: string
-  - audio_url: string (S3)
-  - duration: float
-  - created_at: timestamp
-
-ChordAnalysis
-  - id: UUID
-  - recording_id: FK → Recording
-  - chords: JSON
-  - tempo: float
-  - key: string
-  - status: enum (pending, processing, completed, failed)
-
-LyricSection
-  - id: UUID
-  - recording_id: FK → Recording
-  - name: string
-  - lyrics: text
-  - start_time: float
-  - end_time: float
-  - order_index: int
+1. Grabación → Blob en memoria
+2. decodeAudioData → downmix a mono → decimación
+3. FFT por frame → magnitudes
+4. Chroma de 12 bins por frame, con estimación de afinación (tuning)
+   y umbral de silencio (5% de la mediana de energía)
+5. Filtro mediana temporal del chroma (aplana transitorios)
+6. Estimación de tono global → prior diatónico para las emisiones
+7. Viterbi sobre las emisiones → secuencia de estados → acordes
+8. Coalescencia de acordes contiguos iguales + estimación de tempo
+9. Guardar { chords, key, tempo } en IndexedDB junto al audio
+10. Playback: sincroniza el acorde mostrado con el tiempo de audio actual
 ```
 
-### 6.4 Audio Processing Pipeline (Client-Side MVP)
-
-```
-1. User records audio → stored in memory as Blob
-2. Recording complete → process audio with Web Audio API
-3. Pitch Detection:
-   - Use Pitchfinder library (autocorrelation / YIN)
-   - Extract dominant frequencies per frame
-4. Chromagram Calculation:
-   - Map pitches to 12 semitones (C, C#, D, D#, E, F, F#, G, G#, A, A#, B)
-   - Build 12-bin chromagram over time
-5. Chord Detection:
-   - Compare chromagram patterns to known chord templates
-   - Apply smoothing (median filter) to reduce noise
-   - Output: [{start, end, root, quality, confidence}, ...]
-6. Store results in IndexedDB alongside audio
-7. Playback: sync chord display with current audio time
-```
-
-**Nota:** La detección client-side tiene ~70-85% de precisión. Para máxima precisión, se puede añadir backend con Madmom en el futuro.
+**Nota:** La detección on-device tiene ~70-85% de precisión. Es el único modo;
+no hay fallback de servidor.
 
 ### 6.5 Offline Strategy (PWA)
 
 - Service Worker for asset caching
-- IndexedDB for:
-  - Recorded audio (Blob)
-  - Chord data (local cache)
-  - Lyrics (draft edits)
-- Background sync when connection restored
-- UI shows "offline" indicator when disconnected
+- IndexedDB es la fuente de verdad (no una caché):
+  - Audio grabado (Blob)
+  - Acordes, tono y tempo
+  - Letras
+- La app funciona completa sin conexión; no hay sincronización con servidor.
 
 ### 6.6 Performance Considerations (Mobile)
 
@@ -626,61 +582,49 @@ LyricSection
 ## 7. Project Structure
 
 ```
-mymusic/
+PentaLab/
 ├── frontend/
 │   ├── src/
 │   │   ├── components/
-│   │   │   ├── ui/              # Buttons, cards, inputs
-│   │   │   ├── recording/       # RecordButton, Waveform
-│   │   │   ├── player/          # Player, TransportControls
-│   │   │   ├── lyrics/          # LyricEditor, LyricLine
-│   │   │   └── chords/          # ChordBadge, ChordTimeline
+│   │   │   ├── AuthGate.tsx        # gate de sesión (/api/me)
+│   │   │   ├── BottomNav.tsx
+│   │   │   ├── BottomSheet.tsx
+│   │   │   ├── Layout.tsx
+│   │   │   ├── LyricsEditor.tsx
+│   │   │   ├── LyricsSync.tsx
+│   │   │   ├── PlayAlong.tsx
+│   │   │   └── decor.tsx           # PaintBlob, Wordmark, Signature
 │   │   ├── screens/
 │   │   │   ├── Home.tsx
-│   │   │   ├── Library.tsx
+│   │   │   ├── Login.tsx
 │   │   │   ├── Create.tsx
 │   │   │   ├── Practice.tsx
 │   │   │   └── Settings.tsx
 │   │   ├── hooks/
 │   │   │   ├── useAudioRecorder.ts
-│   │   │   ├── useAudioPlayer.ts
-│   │   │   └── useChords.ts
-│   │   ├── services/
-│   │   │   └── api.ts
-│   │   ├── stores/
-│   │   │   └── recordingStore.ts
+│   │   │   └── usePwaInstall.ts
 │   │   ├── lib/
-│   │   │   └── utils.ts
-│   │   └── App.tsx
+│   │   │   ├── audioProcessor.ts   # chroma + Viterbi (detección)
+│   │   │   ├── fft.ts              # FFT radix-2 propia
+│   │   │   └── format.ts          # formatTime (m:ss)
+│   │   ├── services/
+│   │   │   └── storage.ts          # IndexedDB + adaptador zustand
+│   │   ├── stores/
+│   │   │   ├── recordingStore.ts
+│   │   │   └── settingsStore.ts
+│   │   ├── workers/
+│   │   │   └── chordWorker.ts       # corre audioProcessor fuera del hilo UI
+│   │   ├── App.tsx
+│   │   └── main.tsx
 │   ├── package.json
 │   ├── vite.config.ts
 │   └── tailwind.config.js
 │
-├── backend/
-│   ├── app/
-│   │   ├── api/
-│   │   │   └── v1/
-│   │   │       ├── recordings.py
-│   │   │       └── chords.py
-│   │   ├── core/
-│   │   │   ├── config.py
-│   │   │   └── deps.py
-│   │   ├── models/
-│   │   │   └── recording.py
-│   │   ├── services/
-│   │   │   ├── audio_processor.py
-│   │   │   └── chord_detector.py
-│   │   └── main.py
-│   ├── requirements.txt
-│   └── Dockerfile
-│
-├── capacitor/
-│   ├── android/
-│   ├── ios/
-│   └── capacitor.config.ts
-│
 └── SPEC.md
 ```
+
+> No hay `backend/` ni `capacitor/`: la app es 100% frontend (PWA), con la
+> detección de acordes on-device.
 
 ---
 
@@ -689,8 +633,7 @@ mymusic/
 ### MVP (Fase 1)
 
 - ✅ Recording (mobile only)
-- ✅ Upload to backend
-- ✅ Chord detection (Madmom)
+- ✅ Chord detection (on-device: chroma + Viterbi)
 - ✅ Lyrics editor (manual input)
 - ✅ Playback with chord sync
 - ✅ Basic playback controls (play/pause, seek)
@@ -698,12 +641,12 @@ mymusic/
 
 ### Full App (Fase 2)
 
-- ✅ Stem separation (Demucs)
 - ✅ Loop sections
 - ✅ Share recordings
 - ✅ Favorites/playlists
-- ✅ Auto-lyrics transcription (Whisper)
-- ✅ User accounts
+- ⏳ Stem separation (Demucs) — requiere reintroducir backend
+- ⏳ Auto-lyrics transcription (Whisper) — requiere backend
+- ⏳ User accounts / sincronización en la nube
 
 ---
 
@@ -714,38 +657,33 @@ mymusic/
 - Vitest + React Testing Library
 - Component tests: buttons, cards, inputs
 - Integration: recording flow, playback flow
-
-### Backend
-
-- Pytest
-- API endpoint tests
-- Mock Madmom for unit tests
+- Unit: `audioProcessor` / `fft` con audio sintético de acordes conocidos
 
 ### E2E (Post-MVP)
 
 - Playwright
-- Critical flows: record → analyze → practice
+- Critical flows: record → analyze (on-device) → practice
 
 ---
 
 ## 10. Deployment
 
-### Frontend
+### Frontend (estático, único despliegue)
 
 - Vercel (preferred) o Netlify
 - Preview deployments for PRs
+- Build: `tsc && vite build` → estáticos + service worker (PWA)
 
 ### Backend
 
-- Railway / Render (Python support)
-- Docker container
-- Scales with demand
+- Ninguno. No hay servicio de aplicación que desplegar ni escalar.
+- La autenticación la cubre el proxy de producción que sirve los estáticos.
 
 ### Storage
 
-- Cloudflare R2 (S3-compatible, cheaper)
-- o AWS S3
+- En el dispositivo (IndexedDB). No hay almacenamiento de objetos en la nube
+  (S3/R2) porque el audio nunca sale del navegador.
 
 ---
 
-_Last updated: 2026-05-29_
+_Last updated: 2026-06-20 — arquitectura solo on-device (sin backend)_
