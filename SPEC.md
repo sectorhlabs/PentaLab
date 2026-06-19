@@ -480,17 +480,19 @@ dedicado en una fase futura.
 - MediaRecorder API (grabación)
 - Web Worker (`chordWorker`) para el análisis sin bloquear la UI
 
-**Backend:** ninguno. Toda la detección de acordes es on-device. La
-autenticación (`/api/login`, `/api/me`, `/api/logout`) la resuelve el proxy de
-producción, no un servidor de la app.
+**Backend:** ninguno. Toda la detección de acordes es on-device.
+
+**Autenticación:** ninguna. Los datos viven solo en el dispositivo (IndexedDB),
+así que nadie puede ver las grabaciones de otra persona; no hay clave de acceso
+ni sesión. La app es de uso local por dispositivo.
 
 **Mobile:**
 
 - PWA (instalable, offline). Sin Capacitor por ahora.
 
-### 6.2 Persistencia y red
+### 6.2 Persistencia
 
-No hay API REST propia: grabaciones, acordes y letras viven en el dispositivo.
+No hay red ni API: grabaciones, acordes y letras viven en el dispositivo.
 
 **Almacenamiento local (`services/storage.ts`):**
 
@@ -504,14 +506,6 @@ IndexedDB "pentalab-db"
 - El análisis devuelve `{ chords, key, tempo }` desde el worker; se guarda junto
   con la metadata. No hay polling ni jobs asíncronos remotos.
 - Al borrar una grabación se elimina su blob de IndexedDB y su metadata del store.
-
-**Único contacto con red — autenticación (proxy de producción, no la app):**
-
-```
-POST /api/login    → inicia sesión (cookie firmada)
-GET  /api/me       → valida la sesión actual
-POST /api/logout   → cierra sesión
-```
 
 ### 6.3 Data Model (client-side)
 
@@ -586,7 +580,6 @@ PentaLab/
 ├── frontend/
 │   ├── src/
 │   │   ├── components/
-│   │   │   ├── AuthGate.tsx        # gate de sesión (/api/me)
 │   │   │   ├── BottomNav.tsx
 │   │   │   ├── BottomSheet.tsx
 │   │   │   ├── Layout.tsx
@@ -596,7 +589,6 @@ PentaLab/
 │   │   │   └── decor.tsx           # PaintBlob, Wordmark, Signature
 │   │   ├── screens/
 │   │   │   ├── Home.tsx
-│   │   │   ├── Login.tsx
 │   │   │   ├── Create.tsx
 │   │   │   ├── Practice.tsx
 │   │   │   └── Settings.tsx
@@ -677,7 +669,7 @@ PentaLab/
 ### Backend
 
 - Ninguno. No hay servicio de aplicación que desplegar ni escalar.
-- La autenticación la cubre el proxy de producción que sirve los estáticos.
+- Sin autenticación: la app es de uso local por dispositivo (ver §6.1).
 
 ### Storage
 
@@ -686,4 +678,4 @@ PentaLab/
 
 ---
 
-_Last updated: 2026-06-20 — arquitectura solo on-device (sin backend)_
+_Last updated: 2026-06-20 — arquitectura solo on-device (sin backend ni autenticación)_
