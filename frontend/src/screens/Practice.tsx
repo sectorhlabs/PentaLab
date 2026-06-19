@@ -91,8 +91,8 @@ export default function Practice() {
   useEffect(() => { if (audioRef.current) audioRef.current.volume = volume }, [volume, audioReady])
   useEffect(() => { if (audioRef.current) audioRef.current.loop = isLooping }, [isLooping, audioReady])
 
-  const currentChord = chords.find((c) => currentTime >= c.start && currentTime < c.end)
   const currentChordIndex = chords.findIndex((c) => currentTime >= c.start && currentTime < c.end)
+  const currentChord = currentChordIndex >= 0 ? chords[currentChordIndex] : undefined
 
   const togglePlay = () => {
     const audio = audioRef.current
@@ -250,7 +250,7 @@ export default function Practice() {
           <div className="relative grid place-items-center py-6 mb-4">
             <PaintBlob
               key={currentChord ? `${currentChordIndex}-${currentChord.root}${currentChord.quality}` : 'idle'}
-              variant={(currentChord ? Math.abs(currentChordIndex) % 3 : 0) as 0 | 1 | 2}
+              variant={(currentChord ? currentChordIndex % 3 : 0) as 0 | 1 | 2}
               className={`absolute w-48 h-48 ${currentChord ? 'text-magenta/20 animate-chord-bloom' : 'text-paper-line/60'}`}
             />
             <div className="relative text-center">
