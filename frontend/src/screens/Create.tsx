@@ -20,6 +20,8 @@ export default function Create() {
   const savedIdRef = useRef<string | null>(null)
   const pendingRef = useRef<Parameters<typeof addRecording>[0] | null>(null)
   const [saveError, setSaveError] = useState(false)
+  const [quotaError, setQuotaError] = useState(false)
+  const [saveDetail, setSaveDetail] = useState('')
   const [isFirst, setIsFirst] = useState(false)
   const [titleDraft, setTitleDraft] = useState('')
   const [showMicPrime, setShowMicPrime] = useState(false)
@@ -44,14 +46,16 @@ export default function Create() {
       savedIdRef.current = null
       pendingRef.current = null
       setSaveError(false)
+      setQuotaError(false)
+      setSaveDetail('')
       setIsFirst(false)
       setTitleDraft('')
     }
     if (status === 'complete') hasProcessedRef.current = false
   }, [status, audioBlob, processRecording])
 
-  // Persiste el audio + metadatos. Si IndexedDB rechaza (sin espacio en el
-  // dispositivo, p. ej.), marcamos el error en vez de fingir que se guardó.
+  // Persiste el audio + metadatos. Si IndexedDB rechaza, marcamos el error en
+  // vez de fingir que se guardó, distinguiendo cuota de cualquier otra causa.
   const persist = useCallback(async (rec: Parameters<typeof addRecording>[0], blob: Blob) => {
     try {
       await saveAudioBlob(rec.id, blob)
@@ -62,6 +66,10 @@ export default function Create() {
       setSaveError(false)
     } catch (err) {
       console.error('No se pudo guardar la grabación:', err)
+      const isQuota = err instanceof DOMException &&
+        /quota/i.test(err.name + err.message)
+      setQuotaError(isQuota)
+      setSaveDetail(err instanceof DOMException ? err.name : String(err))
       setSaveError(true)
     }
   }, [addRecording, setCurrentRecording])
@@ -196,8 +204,13 @@ export default function Create() {
             </span>
             <h2 className="t-h2 text-ink">No se pudo guardar</h2>
             <p className="t-body text-ink-soft mt-1 mb-5 max-w-[300px]">
-              Puede que te quede poco espacio en el dispositivo. Libera algo y reinténtalo; tu grabación sigue aquí.
+              {quotaError
+                ? 'Te queda poco espacio en el dispositivo. Libera algo y reinténtalo; tu grabación sigue aquí.'
+                : 'No pudimos guardar la grabación en este navegador. Reinténtalo; tu grabación sigue aquí.'}
             </p>
+            {!quotaError && saveDetail && (
+              <p className="t-meta text-ink-faint font-mono mb-5 max-w-[300px] break-all">{saveDetail}</p>
+            )}
             <div className="flex gap-3 w-full max-w-[300px]">
               <button className="btn btn-secondary flex-1" onClick={reset}>Descartar</button>
               <button className="btn btn-primary flex-1" onClick={retrySave}>Reintentar</button>

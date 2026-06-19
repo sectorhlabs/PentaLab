@@ -39,11 +39,17 @@ export function openDB(): Promise<IDBDatabase> {
 
 export async function saveAudioBlob(id: string, blob: Blob): Promise<void> {
   const db = await openDB()
+  // WebKit (iOS/Safari) ha tenido bugs guardando Blobs directamente en
+  // IndexedDB: lanza error aunque haya espacio de sobra. Guardamos el
+  // ArrayBuffer + el type y reconstruimos el Blob al leer.
+  const data = await blob.arrayBuffer()
   return new Promise((resolve, reject) => {
     const tx = db.transaction(STORE_NAME, 'readwrite')
-    tx.objectStore(STORE_NAME).put({ id, blob })
+    tx.objectStore(STORE_NAME).put({ id, data, type: blob.type })
     tx.oncomplete = () => resolve()
+    // onabort cubre los rechazos por cuota, que llegan como abort, no error.
     tx.onerror = () => reject(tx.error)
+    tx.onabort = () => reject(tx.error)
   })
 }
 
@@ -52,7 +58,14 @@ export async function getAudioBlob(id: string): Promise<Blob | null> {
   return new Promise((resolve, reject) => {
     const tx = db.transaction(STORE_NAME, 'readonly')
     const request = tx.objectStore(STORE_NAME).get(id)
-    request.onsuccess = () => resolve(request.result?.blob || null)
+    request.onsuccess = () => {
+      const rec = request.result
+      if (!rec) return resolve(null)
+      // Compat: registros antiguos guardaban el Blob directamente.
+      if (rec.blob instanceof Blob) return resolve(rec.blob)
+      if (rec.data) return resolve(new Blob([rec.data], { type: rec.type || 'audio/webm' }))
+      resolve(null)
+    }
     request.onerror = () => reject(request.error)
   })
 }
