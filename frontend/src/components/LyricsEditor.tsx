@@ -44,8 +44,9 @@ export function LyricsEditor({
 
   return (
     <div
-      className="fixed inset-0 z-50 bg-paper flex flex-col"
+      className="fixed inset-x-0 top-0 z-50 bg-paper flex flex-col overflow-hidden"
       style={{
+        height: '100dvh',
         paddingTop: 'env(safe-area-inset-top)',
         backgroundImage: 'url("/paper-texture.webp")',
         backgroundSize: 'cover',

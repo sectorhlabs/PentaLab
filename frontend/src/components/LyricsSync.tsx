@@ -121,7 +121,7 @@ export function LyricsSync({
   const totalMarkable = lyrics.filter((l) => l.text.trim() !== '').length
 
   return (
-    <div className="fixed inset-0 z-50 bg-paper flex flex-col" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
+    <div className="fixed inset-x-0 top-0 z-50 bg-paper flex flex-col overflow-hidden" style={{ height: '100dvh', paddingTop: 'env(safe-area-inset-top)' }}>
       <audio
         ref={audioRef}
         onTimeUpdate={(e) => setCurrentTime(e.currentTarget.currentTime)}
