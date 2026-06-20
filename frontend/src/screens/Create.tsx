@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { Mic, Square, Check, AlertTriangle } from 'lucide-react'
 import { useAudioRecorder } from '../hooks/useAudioRecorder'
 import { useRecordingStore } from '../stores/recordingStore'
-import { useSettingsStore } from '../stores/settingsStore'
+import { useSettingsStore, useSettingsHydrated } from '../stores/settingsStore'
 import { saveAudioBlob } from '../services/storage'
 import { PaintBlob } from '../components/decor'
 import { BottomSheet } from '../components/BottomSheet'
@@ -26,6 +26,7 @@ export default function Create() {
   const [titleDraft, setTitleDraft] = useState('')
   const [showMicPrime, setShowMicPrime] = useState(false)
 
+  const hydrated = useSettingsHydrated()
   const hasPrimedMic = useSettingsStore((s) => s.hasPrimedMic)
   const markMicPrimed = useSettingsStore((s) => s.markMicPrimed)
 
@@ -98,8 +99,8 @@ export default function Create() {
 
   const handleRecordClick = () => {
     if (status === 'idle') {
-      // La primera vez, explicamos el permiso antes del prompt del navegador.
-      if (!hasPrimedMic) { setShowMicPrime(true); return }
+      // La primera vez (ya hidratado), explicamos el permiso antes del prompt.
+      if (hydrated && !hasPrimedMic) { setShowMicPrime(true); return }
       startRecording()
     } else if (status === 'recording') stopRecording()
   }

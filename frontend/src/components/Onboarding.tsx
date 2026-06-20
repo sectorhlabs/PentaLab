@@ -1,6 +1,6 @@
 import { Mic, Palette, Music2 } from 'lucide-react'
 import { BottomSheet } from './BottomSheet'
-import { useSettingsStore } from '../stores/settingsStore'
+import { useSettingsStore, useSettingsHydrated } from '../stores/settingsStore'
 
 // Tres tiempos del flujo, en lenguaje de marca. Las clases del chip van
 // literales (Tailwind no genera nombres construidos por interpolación).
@@ -12,11 +12,12 @@ const BEATS = [
 
 /** Bienvenida de primer uso. Se muestra una sola vez (flag persistido). */
 export default function Onboarding() {
+  const hydrated = useSettingsHydrated()
   const hasOnboarded = useSettingsStore((s) => s.hasOnboarded)
   const completeOnboarding = useSettingsStore((s) => s.completeOnboarding)
 
   return (
-    <BottomSheet open={!hasOnboarded} onClose={completeOnboarding} title="Te damos la bienvenida">
+    <BottomSheet open={hydrated && !hasOnboarded} onClose={completeOnboarding} title="Te damos la bienvenida">
       <div className="space-y-5">
         <p className="t-body text-ink-soft">Tu cuaderno para pintar canciones con sonido.</p>
 
