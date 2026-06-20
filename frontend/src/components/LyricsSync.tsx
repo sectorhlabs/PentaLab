@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { Play, Pause, RotateCcw, Undo2, Check, X } from 'lucide-react'
 import { getAudioBlob } from '../services/storage'
 import type { LyricLine } from '../stores/recordingStore'
 import { formatTime } from '../lib/format'
+import { useViewportHeight } from '../hooks/useViewportHeight'
 
 export function LyricsSync({
   open,
@@ -20,6 +22,7 @@ export function LyricsSync({
   const audioRef = useRef<HTMLAudioElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const activeRef = useRef<HTMLParagraphElement>(null)
+  const vh = useViewportHeight()
 
   const [times, setTimes] = useState<(number | null)[]>([])
   const [cursor, setCursor] = useState(0)
@@ -120,8 +123,8 @@ export function LyricsSync({
   const markedCount = times.filter((t) => t != null).length
   const totalMarkable = lyrics.filter((l) => l.text.trim() !== '').length
 
-  return (
-    <div className="fixed inset-x-0 top-0 z-50 bg-paper flex flex-col overflow-hidden" style={{ height: '100dvh', paddingTop: 'env(safe-area-inset-top)' }}>
+  return createPortal(
+    <div className="fixed inset-x-0 top-0 z-[70] bg-paper flex flex-col overflow-hidden" style={{ height: vh ? `${vh}px` : '100dvh', paddingTop: 'env(safe-area-inset-top)' }}>
       <audio
         ref={audioRef}
         onTimeUpdate={(e) => setCurrentTime(e.currentTarget.currentTime)}
@@ -188,6 +191,7 @@ export function LyricsSync({
           )}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }

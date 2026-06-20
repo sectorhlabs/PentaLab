@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { X } from 'lucide-react'
 import type { LyricLine } from '../stores/recordingStore'
+import { useViewportHeight } from '../hooks/useViewportHeight'
 
 /** Funde el texto editado con la letra previa, conservando los tiempos de las
  *  líneas cuyo texto no ha cambiado (por posición). */
@@ -30,6 +32,7 @@ export function LyricsEditor({
   onSave: (lines: LyricLine[]) => void
 }) {
   const [text, setText] = useState('')
+  const vh = useViewportHeight()
 
   useEffect(() => {
     if (open) setText(lyrics.map((l) => l.text).join('\n'))
@@ -42,11 +45,11 @@ export function LyricsEditor({
     onClose()
   }
 
-  return (
+  return createPortal(
     <div
-      className="fixed inset-x-0 top-0 z-50 bg-paper flex flex-col overflow-hidden"
+      className="fixed inset-x-0 top-0 z-[70] bg-paper flex flex-col overflow-hidden"
       style={{
-        height: '100dvh',
+        height: vh ? `${vh}px` : '100dvh',
         paddingTop: 'env(safe-area-inset-top)',
         backgroundImage: 'url("/paper-texture.webp")',
         backgroundSize: 'cover',
@@ -74,6 +77,7 @@ export function LyricsEditor({
           className="field h-full resize-none leading-relaxed !bg-paper-deep/70"
         />
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }
